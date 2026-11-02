@@ -119,12 +119,12 @@ const INSTA_POSTS = [];
 // images: 'images/파일명.jpg' 형태로 여러 장 가능
 // post: 해당 프로젝트의 인스타 게시물 주소 (없으면 계정으로 연결)
 const ARCHIVE = {
-  hallasan: { no:'머리닿는 집', type:'2026년 3월', title:'한라산 원정대', date:'', images:[], post:'',
+  hallasan: { no:'머리닿는 집', type:'제주', title:'한라산 원정대', date:'2026년 3월', images:[], post:'',
               desc:'사람들을 모아 눈덮인 한라산을 오른 기록입니다.' },
-  camp:     { no:'숨섬쉼', type:'2026년 여름', title:'대나무숲 바베큐', date:'', images:[], post:'',
+  camp:     { no:'숨섬쉼', type:'제주', title:'대나무숲 바베큐', date:'2025년 여름', images:[], post:'',
               desc:'아무도 없는 경주마 목장 속 대나무 숲에서 우리들만의 바베큐와 캠프파이어.' },
-  goods:    { no:'03', type:'굿즈', title:'굿즈 제작', date:'', images:[], post:'',
-              desc:'직접 만든 굿즈들의 기록입니다.\n(설명을 입력하세요)' },
+  goods:    { no:'숨섬쉼', type:'서울', title:'클로징파티', date:'2025년 11월', images:[], post:'',
+              desc:'직접 만든 굿즈 아직도 다 안팔림.\n구매문의 DM 주세요...' },
   work1:    { no:'04', type:'오프라인 프로젝트', title:'개인 프로젝트 1', date:'', images:[], post:'', desc:'(설명을 입력하세요)' },
   work2:    { no:'05', type:'오프라인 프로젝트', title:'개인 프로젝트 2', date:'', images:[], post:'', desc:'(설명을 입력하세요)' },
   work3:    { no:'06', type:'오프라인 프로젝트', title:'개인 프로젝트 3', date:'', images:[], post:'', desc:'(설명을 입력하세요)' },
@@ -461,18 +461,18 @@ function buildTown() {
   map.objects = o;
   map.acts = [
     { x: 9, y: 4, w: 2, h: 1, kind: 'archive', key: 'hallasan' },
-    { x: 11, y: 6, w: 1, h: 1, kind: 'dialog', lines: ['↑ 한라산 등산로', '함께 올랐던 날의 기록이 이 길 끝에 있어요.'] },
+    { x: 11, y: 6, w: 1, h: 1, kind: 'dialog', lines: ['↑ 한라산 등산로', '16명이서 다함께 올랐던 날의 기록이 이 길 끝에 있어요.'] },
     { x: 3, y: 9, w: 2, h: 2, kind: 'archive', key: 'camp', up: 1 },
     { x: 6, y: 9, w: 2, h: 2, kind: 'archive', key: 'camp', up: 1 },
     { x: 5, y: 12, w: 1, h: 1, kind: 'archive', key: 'camp' },
     { x: 23, y: 10, w: 4, h: 2, kind: 'archive', key: 'goods', up: 1 },
-    { x: 14, y: 13, w: 1, h: 1, kind: 'dialog', lines: ['ROOF TOUCH HOUSE', '루프터치하우스의 작업들을 모아 둔 아카이브 마을입니다.', '집 안에 들어가 작업물을 살펴보세요!'] },
+    { x: 14, y: 13, w: 1, h: 1, kind: 'dialog', lines: ['머리 닿는 집', '김영수가 살면서, 사람들을 모아 캠프를 진행한 50년된 구옥.', '집 안에 들어가 기록들을 살펴보세요!'] },
     { x: 19, y: 12, w: 1, h: 1, kind: 'contact', up: 1 },
     { x: 21, y: 13, w: 1, h: 1, kind: 'insta' }
   ];
   map.npcs = [
-    npc(22, 18, SPR.npc1, ['안녕! 여긴 루프터치하우스 마을이야.', '집 안에 들어가면 지금까지의 작업들이 걸려 있어!']),
-    npc(7, 13, SPR.npc2, ['캠프장 텐트를 눌러 봐. 그때 사진이 있을 거야.', '이동할 때 Shift(모바일은 B)를 누르고 있으면 달릴 수 있어!'])
+    npc(22, 18, SPR.npc1, ['안녕! 여긴 000 마을이야.', '김영수가 진행한 프로젝트들을 모아둔 마을이지.', '자유롭게 구경해 봐!']),
+    npc(7, 13, SPR.npc2, ['대나무 숲 안에 들어가봐. 숨섬쉼에서의 기록들이 있을 거야.', '이동할 때 Shift(모바일은 B)를 누르고 있으면 달릴 수 있어!'])
   ];
   map.lights = [
     { x: 12 * 16 + 8, y: 16 * 16 + 4, r: 44 }, { x: 19 * 16 + 8, y: 16 * 16 + 4, r: 44 },
@@ -573,7 +573,7 @@ function goMap(id, x, y, dir) {
     $('fade').style.opacity = 0;
     setTimeout(() => {
       fading = false;
-      if (id === 'house' && !houseVisited) { houseVisited = true; say(['루프터치하우스에 오신 걸 환영해요!', '벽에 걸린 작업물이나 물건 앞에서 A를 누르거나, 직접 눌러 보세요.']); }
+      if (id === 'house' && !houseVisited) { houseVisited = true; say(['머리 닿는 집에 오신 걸 환영해요!', '벽에 걸린 작업물이나 물건 앞에서 A를 누르거나, 직접 눌러 보세요.']); }
     }, 260);
   }, 260);
 }
@@ -676,7 +676,7 @@ function openInsta() {
   sheet.innerHTML = `
     <div class="no">PC · INSTAGRAM</div>
     <h2>${esc(SITE.instaId)}</h2>
-    <p class="desc">PC를 켰다! 루프터치하우스의 인스타그램 기록을 볼 수 있어요.</p>
+    <p class="desc">PC를 켰다! 머리 닿는 집의 인스타그램 기록을 볼 수 있어요.</p>
     <div class="actions"><a class="btn primary" href="${SITE.insta}" target="_blank" rel="noopener">인스타그램 열기 ▶</a><button class="btn close">닫기</button></div>
     <div id="feed"></div>`;
   const feed = $('feed');
@@ -684,7 +684,7 @@ function openInsta() {
     feed.innerHTML = INSTA_POSTS.map(u => `<blockquote class="instagram-media" data-instgrm-permalink="${esc(u)}" data-instgrm-version="14" style="width:100%;margin:12px 0"></blockquote>`).join('');
     if (window.instgrm) window.instgrm.Embeds.process();
     else { const s = document.createElement('script'); s.async = true; s.src = 'https://www.instagram.com/embed.js'; document.body.appendChild(s); }
-  } else feed.innerHTML = `<p class="hint">INSTA_POSTS에 게시물 주소를 넣으면 여기에 피드가 표시돼요.</p>`;
+  } else feed.innerHTML = `<p class="hint">INSTA_POSTS에 게시물 주소를 넣으면 여기에 피드가 표시돼요. 이게 뭔 기능이지?</p>`;
   showModal();
 }
 function openContact() {
