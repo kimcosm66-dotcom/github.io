@@ -2,6 +2,26 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+<script>
+window.showErr = function (msg) {
+  var box = document.getElementById('errbox');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'errbox';
+    box.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:99999;background:#c00;color:#fff;font:13px/1.6 sans-serif;padding:10px;white-space:pre-wrap;max-height:40vh;overflow:auto';
+    box.onclick = function () { box.style.display = 'none'; };
+    (document.body || document.documentElement).appendChild(box);
+  }
+  if (box.textContent.indexOf(msg) >= 0) return;
+  box.style.display = 'block';
+  box.textContent += msg + '\n';
+};
+window.addEventListener('error', function (e) {
+  var m = String(e.message || '');
+  var hint = /end of|EOF|Unexpected end/i.test(m) ? '\n→ 코드가 중간에 잘렸어요. 1부·2부·3부를 모두 이어 붙였는지 확인해 주세요.' : '';
+  window.showErr('오류: ' + m + ' (' + (e.lineno || '?') + '행)' + hint + '\n이 화면을 캡처해서 보내 주세요. (빨간 박스를 누르면 닫혀요)');
+});
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>ROOF TOUCH HOUSE ARCHIVE</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri/dist/galmuri.css">
@@ -14,29 +34,21 @@ body{font-family:'Galmuri11','Galmuri9',monospace;color:var(--ink);user-select:n
 .box{background:var(--paper);border:4px solid var(--line);border-radius:8px;box-shadow:inset 0 0 0 3px #c8d8f0,0 4px 0 rgba(0,0,0,.3);}
 .btn{display:inline-block;font:inherit;font-size:13px;padding:8px 12px;background:var(--paper);border:3px solid var(--line);border-radius:6px;color:var(--ink);cursor:pointer;text-decoration:none;}
 .btn.primary{background:var(--orange);color:#fff;}
-
-/* 상단 HUD */
 #top{position:fixed;top:calc(10px + env(safe-area-inset-top));right:10px;display:flex;gap:6px;z-index:10;}
 #top .btn{font-size:12px;padding:6px 9px;}
 #tag{position:fixed;top:calc(58px + env(safe-area-inset-top));left:14px;z-index:10;color:#fff;text-shadow:2px 2px 0 #000;pointer-events:none;opacity:0;transform:translateY(-6px);transition:.25s;}
 #tag.show{opacity:1;transform:none;}
 #tag small{font-size:11px;letter-spacing:.25em;}
 #tag b{display:block;font-size:22px;margin-top:6px;font-weight:normal;}
-
-/* 보기 프롬프트 */
 #prompt{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:10;display:none;align-items:center;gap:8px;padding:8px 14px;font-size:14px;color:#fff;text-shadow:2px 2px 0 #000;cursor:pointer;}
 #prompt.show{display:flex;}
 #prompt kbd{font:inherit;font-size:12px;padding:2px 7px;border:2px solid #fff;border-radius:4px;text-shadow:none;background:rgba(0,0,0,.35);}
 body.touch #prompt{bottom:calc(170px + env(safe-area-inset-bottom));}
-
-/* 대화창 */
 #dialog{position:fixed;left:10px;right:10px;bottom:calc(20px + env(safe-area-inset-bottom));max-width:640px;margin:0 auto;padding:14px 18px 20px;min-height:86px;font-size:15px;line-height:1.75;z-index:15;display:none;cursor:pointer;}
 #dialog.show{display:block;}
 #dialog::after{content:'▼';position:absolute;right:14px;bottom:6px;font-size:10px;color:#e04030;animation:blink .7s steps(2) infinite;}
 body.touch #dialog{bottom:calc(170px + env(safe-area-inset-bottom));}
 @keyframes blink{50%{opacity:0}}
-
-/* 모바일 조작 */
 #pad{display:none;}
 body.touch #pad{display:block;}
 #joy{position:fixed;right:22px;bottom:calc(26px + env(safe-area-inset-bottom));width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.25);border:3px solid rgba(255,255,255,.7);touch-action:none;z-index:12;}
@@ -44,8 +56,6 @@ body.touch #pad{display:block;}
 .ab{position:fixed;width:62px;height:62px;border-radius:50%;font:inherit;font-size:20px;color:var(--ink);background:rgba(248,248,248,.92);border:3px solid var(--line);touch-action:none;z-index:12;}
 #btnA{left:100px;bottom:calc(62px + env(safe-area-inset-bottom));}
 #btnB{left:22px;bottom:calc(24px + env(safe-area-inset-bottom));}
-
-/* 상세 모달 */
 #modal{position:fixed;inset:0;z-index:30;display:none;align-items:center;justify-content:center;padding:14px;background:rgba(0,0,0,.55);}
 #modal.show{display:flex;}
 #sheet{width:100%;max-width:560px;max-height:88vh;overflow:auto;padding:18px;user-select:text;-webkit-user-select:text;}
@@ -65,8 +75,6 @@ body.touch #pad{display:block;}
 .list span{color:var(--orange);margin-right:8px;}
 #feed{margin-top:12px;}
 .hint{font-size:12px;color:#888;line-height:1.8;margin-top:12px;}
-
-/* 타이틀 · 전환 */
 #title{position:fixed;inset:0;z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:linear-gradient(#88c8f0 62%,#78c878 62%);cursor:pointer;transition:opacity .5s;}
 #title.hide{opacity:0;pointer-events:none;}
 #logo{width:192px;height:196px;image-rendering:pixelated;}
@@ -109,15 +117,11 @@ body.touch #pad{display:block;}
 const SITE = {
   insta: 'https://www.instagram.com/roof_touch_house/',
   instaId: '@roof_touch_house',
-  email: 'your@email.com'                    // ← 실제 메일 주소로 교체
+  email: 'your@email.com'
 };
 
-// 인스타 게시물 주소를 넣으면 PC·게시판에서 피드로 보여 줍니다.
-// 예: 'https://www.instagram.com/p/게시물코드/'
 const INSTA_POSTS = [];
 
-// images: 'images/파일명.jpg' 형태로 여러 장 가능
-// post: 해당 프로젝트의 인스타 게시물 주소 (없으면 계정으로 연결)
 const ARCHIVE = {
   hallasan: { no:'머리닿는 집', type:'제주', title:'한라산 원정대', date:'2026년 3월', images:[], post:'',
               desc:'사람들을 모아 눈덮인 한라산을 오른 기록입니다.' },
@@ -138,20 +142,20 @@ const ARCHIVE = {
    ========================================================= */
 const $ = id => document.getElementById(id);
 const cv = $('game'), ctx = cv.getContext('2d');
-const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const esc = s => String(s === undefined || s === null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const R = (g, c, x, y, w = 1, h = 1) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
 const hsh = (x, y) => ((x * 73856093) ^ (y * 19349663)) >>> 0;
+const wave = (t, wx) => Math.sin(t * 1.4 - wx * 0.022);
 function makeCanvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; return [c, g]; }
 if (matchMedia('(pointer:coarse)').matches || 'ontouchstart' in window) document.body.classList.add('touch');
 const isTouch = document.body.classList.contains('touch');
 $('key').textContent = isTouch ? 'A' : 'Space';
 
 /* =========================================================
-   3. 캐릭터 스프라이트 (직접 그린 16x16 픽셀)
+   3. 캐릭터 스프라이트
    ========================================================= */
 const HEAD = {
-  down: [".....KKKKKK.....","....KOOOOOOK....","...KOOOWWOOOK...","...KOOOOOOOOK...","..KKKKKKKKKKKK..",
-         "...KHHSSSSHHK...","...KHSKSSKSHK...","...KSSSSSSSSK...","....KSSSSSSK....","...KTTTWWTTTK...",
+  down: [".....KKKKKK.....","....KOOOOOOK....","...KOOOWWOOOK...","...KOOOOOOOOK...","..KKKKKKKKKKKKHSSSSHHK...","...KHSKSSKSHK...","...KSSSSSSSSK...","....KSSSSSSK....","...KTTTWWTTTK...",
          "..KSTTTWWTTTSK..","..KSKTTTTTTKSK..","...KKNNNNNNKK..."],
   up:   [".....KKKKKK.....","....KOOOOOOK....","...KOOOOOOOOK...","...KOOOOOOOOK...","..KKKKKKKKKKKK..",
          "...KHHHHHHHHK...","...KHHHHHHHHK...","...KHHHHHHHHK...","....KHHHHHHK....","...KTTTTTTTTK...",
@@ -195,7 +199,7 @@ const SPR = {
    4. 오브젝트 스프라이트
    ========================================================= */
 const GLYPH = {
-  R:'####.|#...#|####.|#..#.|#...#', O:'.###.|#...#|#...#|#...#|.###.', F:'#####|#....|####.|#....|#....',
+  R:'####.|#...#|####.|#..#.|#...#', O:'.###.|#...#|#...#|#...#|####|#....|####.|#....|#....',
   T:'#####|..#..|..#..|..#..|..#..', U:'#...#|#...#|#...#|#...#|.###.', C:'.####|#....|#....|#....|.####',
   H:'#...#|#...#|#####|#...#|#...#', S:'.####|#....|.###.|....#|####.', E:'#####|#....|####.|#....|#####',
   G:'.####|#....|#..##|#...#|.###.', D:'####.|#...#|#...#|#...#|####.'
@@ -208,8 +212,6 @@ function drawText(g, str, cx, y, s = 2, color = '#202020') {
     x += 6 * s;
   }
 }
-
-// ROOF TOUCH HOUSE 로고 → 픽셀 건물 (96x98)
 function makeHouse() {
   const [c, g] = makeCanvas(96, 98);
   const OR = '#f05a1e', ORD = '#b83a10', K = '#202020', WH = '#ffffff';
@@ -219,12 +221,12 @@ function makeHouse() {
     R(g, OR, x0, y, x1 - x0, 1);
     if (x1 - x0 > 8) R(g, WH, x0 + 4, y, x1 - x0 - 8, 1);
   }
-  R(g, K, 0, 36, 14, 3); R(g, K, 82, 36, 14, 3);          // 지붕 아래 검은 턱
-  R(g, WH, 14, 38, 68, 57);                                // 벽
-  R(g, '#e8e8e8', 76, 38, 5, 57);                          // 벽 그늘
+  R(g, K, 0, 36, 14, 3); R(g, K, 82, 36, 14, 3);
+  R(g, WH, 14, 38, 68, 57);
+  R(g, '#e8e8e8', 76, 38, 5, 57);
   R(g, K, 11, 36, 3, 62); R(g, K, 82, 36, 3, 62); R(g, K, 11, 95, 74, 3);
   drawText(g, 'ROOF', 48, 26); drawText(g, 'TOUCH', 48, 40); drawText(g, 'HOUSE', 48, 54);
-  R(g, K, 35, 68, 26, 27); R(g, '#8a5a30', 37, 70, 22, 25);  // 문
+  R(g, K, 35, 68, 26, 27); R(g, '#8a5a30', 37, 70, 22, 25);
   R(g, '#9ad0f0', 39, 72, 8, 7); R(g, '#9ad0f0', 49, 72, 8, 7);
   R(g, K, 47, 70, 2, 25);
   R(g, '#f8d048', 44, 84, 2, 2); R(g, '#f8d048', 50, 84, 2, 2);
@@ -243,16 +245,25 @@ function makeTree() {
   }
   return c;
 }
-function makeTent(col, dark) {
-  const [c, g] = makeCanvas(32, 28);
-  for (let y = 0; y < 26; y++) {
-    const half = 1 + Math.round(y * 14 / 25);
-    R(g, '#202020', 16 - half - 1, y, half * 2 + 2, 1);
-    R(g, col, 16 - half, y, half * 2, 1);
-    R(g, dark, 16, y, half, 1);
+function makeBamboo(v) {
+  const [c, g] = makeCanvas(18, 52);
+  const greens = ['#8fae6a', '#a6bd78', '#7a9a58', '#b4b884'];
+  [[1, 2], [6, 3], [11, 2], [15, 2]].forEach(([sx, w], i) => {
+    const col = greens[(i + v) % 4], top = 4 + ((v * 3 + i * 5) % 7);
+    R(g, '#2e4026', sx + w, top, 1, 52 - top);
+    R(g, col, sx, top, w, 52 - top);
+    if (w > 2) R(g, '#c8d49c', sx, top, 1, 52 - top);
+    for (let y = top + 3 + ((i + v) % 4) * 2; y < 52; y += 10) {
+      R(g, '#eef0d0', sx - (w > 2 ? 1 : 0), y, w + 1, 1);
+      R(g, '#4a5e36', sx, y + 1, w, 1);
+    }
+  });
+  const leafCols = ['#2f6a3a', '#4a8a44', '#6aa858', '#3a7a3e'];
+  for (let i = 0; i < 24; i++) {
+    const h = hsh(i + v * 31, v + 3);
+    const lx = h % 16, ly = (h >> 6) % 20 + (i > 17 ? 16 : 0), dir = i % 2 ? 1 : -1, col = leafCols[(h >> 3) % 4];
+    R(g, col, lx, ly, 3, 1); R(g, col, lx + dir, ly + 1, 3, 1);
   }
-  for (let y = 12; y < 26; y++) { const h = Math.round((y - 12) * 5 / 13); R(g, '#3a2a20', 16 - h, y, h * 2, 1); }
-  R(g, '#6a4020', 0, 26, 2, 2); R(g, '#6a4020', 30, 26, 2, 2);
   return c;
 }
 function makeStall() {
@@ -280,7 +291,7 @@ function makeInstaBoard() {
 function makeMailbox() {
   const [c, g] = makeCanvas(16, 20);
   R(g, '#5a3418', 7, 10, 2, 10); R(g, '#202020', 2, 2, 12, 9); R(g, '#e03838', 3, 3, 10, 7);
-  R(g, '#f87070', 3, 3, 10, 2); R(g, '#202020', 5, 6, 6, 1); R(g, '#f8d048', 13, 1, 2, 4);
+  R(g, '#f87070', 3, 3, 10, 2); R(g, 6, 6, 1); R(g, '#f8d048', 13, 1, 2, 4);
   return c;
 }
 function makeLamp() {
@@ -319,24 +330,92 @@ function makePlant() {
   R(g, '#202020', 4, 12, 8, 8); R(g, '#c86838', 5, 13, 6, 6);
   return c;
 }
+function makeTires() {
+  const [c, g] = makeCanvas(18, 30);
+  for (let k = 0; k < 4; k++) {
+    const y = 24 - k * 6;
+    R(g, '#0c0c0e', 0, y, 18, 6); R(g, '#202024', 1, y + 1, 16, 4); R(g, '#2e2e34', 1, y + 1, 16, 1);
+    for (let i = 2 + (k % 2); i < 16; i += 3) R(g, '#3a3a40', i, y + 2, 1, 3);
+  }
+  R(g, '#0c0c0e', 0, 1, 18, 7); R(g, '#28282c', 1, 2, 16, 5); R(g, '#3e3e44', 1, 2, 16, 1);
+  R(g, '#050506', 5, 3, 8, 3);
+  return c;
+}
+function makeGrill() {
+  const [c, g] = makeCanvas(32, 26);
+  R(g, '#202020', 3, 14, 2, 12); R(g, '#202020', 27, 14, 2, 12); R(g, '#202020', 3, 23, 26, 1);
+  R(g, '#202020', 0, 6, 32, 10); R(g, '#3a3a3c', 1, 7, 30, 8); R(g, '#5a5a5e', 1, 14, 30, 1);
+  R(g, '#5a1a10', 2, 8, 28, 4);
+  for (let i = 2; i < 30; i += 3) R(g, '#9a9aa0', i, 7, 1, 6);
+  R(g, '#b0b0b4', 1, 7, 30, 1); R(g, '#b0b0b4', 1, 12, 30, 1);
+  [[4, 8], [11, 9], [18, 8], [24, 9]].forEach(([mx, my]) => {
+    R(g, '#7a2a1a', mx, my, 5, 3); R(g, '#c0604a', mx, my, 5, 2); R(g, '#f0d0b8', mx + 1, my, 1, 2); R(g, '#3a1a10', mx + 3, my, 1, 3);
+  });
+  R(g, '#c8c8cc', 28, 2, 1, 6); R(g, '#c8c8cc', 30, 1, 1, 7);
+  return c;
+}
+function makeLogPile() {
+  const [c, g] = makeCanvas(34, 34);
+  const end = (x, y) => {
+    R(g, '#3a2414', x + 1, y, 8, 10); R(g, '#3a2414', x, y + 1, 10, 8);
+    R(g, '#d8b07a', x + 1, y + 1, 8, 8); R(g, '#e8c890', x + 2, y + 2, 5, 4);
+    R(g, '#a87a48', x + 3, y + 3, 4, 4); R(g, '#d8b07a', x + 4, y + 4, 2, 2);
+  };
+  [[2, 24], [12, 24], [22, 24], [7, 16], [17, 16], [12, 8]].forEach(([x, y]) => end(x, y));
+  for (let i = 0; i < 11; i++) R(g, i < 1 ? '#3a2414' : '#a8743a', 18 + i, 7 - Math.round(i * 0.65), 2, 2);
+  R(g, '#2a2a2e', 13, 6, 7, 5); R(g, '#9aa2aa', 14, 7, 5, 3); R(g, '#e4e8ec', 14, 10, 5, 1);
+  return c;
+}
+function makeLogH() {
+  const [c, g] = makeCanvas(26, 11);
+  R(g, '#3a2414', 0, 1, 24, 9); R(g, '#6a4424', 1, 2, 22, 7); R(g, '#8a5a30', 1, 2, 22, 2);
+  for (let i = 3; i < 20; i += 5) R(g, '#4e3018', i, 5, 3, 1);
+  R(g, '#3a2414', 20, 0, 6, 11); R(g, '#d8b07a', 21, 1, 4, 9); R(g, '#a87a48', 22, 4, 2, 3);
+  return c;
+}
+function makeLogV() {
+  const [c, g] = makeCanvas(12, 28);
+  R(g, '#3a2414', 1, 0, 10, 24); R(g, '#6a4424', 2, 1, 8, 22); R(g, '#8a5a30', 2, 1, 2, 22);
+  for (let i = 4; i < 20; i += 5) R(g, '#4e3018', 6, i
+  R(g, '#3a2414', 0, 20, 12, 8); R(g, '#d8b07a', 1, 21, 10, 6); R(g, '#a87a48', 4, 23, 4, 2);
+  return c;
+}
+function makeMonument() {
+  const [c, g] = makeCanvas(24, 76);
+  R(g, '#18181c', 0, 64, 24, 12); R(g, '#34343a', 1, 65, 22, 10); R(g, '#4a4a52', 1, 65, 22, 2);
+  for (let i = 0; i < 8; i++) { const h = hsh(i, 3); R(g, '#202024', 2 + h % 19, 68 + (h >> 5) % 6, 1, 1); }
+  R(g, '#18181c', 2, 1, 20, 64); R(g, '#18181c', 3, 0, 18, 1);
+  R(g, '#7c7a72', 3, 1, 18, 63); R(g, '#98968c', 3, 1, 3, 63); R(g, '#62605a', 18, 1, 3, 63);
+  for (let i = 0; i < 40; i++) { const h = hsh(i, 11); R(g, i % 2 ? '#6c6a62' : '#8c8a80', 4 + h % 15, 2 + (h >> 6) % 60, 1, 1); }
+  R(g, '#5a5852', 6, 4, 12, 57); R(g, '#86847a', 7, 5, 10, 55);
+  try {
+    const tmp = makeCanvas(12, 56), tg = tmp[1];
+    tg.font = '10px Galmuri9, Galmuri11, "Apple SD Gothic Neo", sans-serif';
+    tg.textAlign = 'center'; tg.textBaseline = 'top'; tg.fillStyle = '#000';
+    let ty = 1;
+    for (const ch of ['구', '두', '미', ' ', '포', '구']) {
+      if (ch === ' ') { ty += 3; continue; }
+      tg.fillText(ch, 6, ty); ty += 10;
+    }
+    const d = tg.getImageData(0, 0, 12, 56).data;
+    const on = (px, py) => d[(py * 12 + px) * 4 + 3] > 110;
+    for (let py = 0; py < 56; py++) for (let px = 0; px < 12; px++) if (on(px, py)) R(g, '#c8c6ba', 7 + px, 6 + py);
+    for (let py = 0; py < 56; py++) for (let px = 0; px < 12; px++) if (on(px, py)) R(g, '#26262a', 6 + px, 5 + py);
+  } catch (err) {}
+  return c;
+}
 const IMG = {
-  house: makeHouse(), tree: makeTree(), tentA: makeTent('#f08040', '#d06028'), tentB: makeTent('#48a8a0', '#2f8880'),
-  stall: makeStall(), sign: makeSign(), insta: makeInstaBoard(), mailbox: makeMailbox(), lamp: makeLamp(),
-  pc: makePC(), shelf: makeShelf(), table: makeTable(), plant: makePlant()
+  house: makeHouse(), tree: makeTree(), stall: makeStall(), sign: makeSign(), insta: makeInstaBoard(),
+  mailbox: makeMailbox(), lamp: makeLamp(), pc: makePC(), shelf: makeShelf(), table: makeTable(), plant: makePlant(),
+  bamboo: [0, 1, 2].map(makeBamboo), tires: makeTires(), grill: makeGrill(), logPile: makeLogPile(),
+  logH: makeLogH(), logV: makeLogV(), monument: makeMonument()
 };
+if (document.fonts && document.fonts.load) document.fonts.load('10px Galmuri9').then(() => { IMG.monument = makeMonument(); }).catch(() => {});
 $('logo').getContext('2d').drawImage(IMG.house, 0, 0);
 
-// 액자 썸네일용 이미지 미리 불러오기
 const THUMB = {};
 for (const [k, a] of Object.entries(ARCHIVE)) if (a.images[0]) { const im = new Image(); im.src = a.images[0]; THUMB[k] = im; }
 
-function drawFire(g, x, y, t) {
-  const f = (t * 8 | 0) % 2;
-  R(g, '#808080', x + 1, y + 13, 3, 2); R(g, '#808080', x + 12, y + 13, 3, 2);
-  R(g, '#6a4020', x + 2, y + 11, 12, 3); R(g, '#8a5a30', x + 4, y + 9, 8, 3);
-  R(g, '#f05a1e', x + 5, y + 4 + f, 6, 6 - f); R(g, '#f8b030', x + 6, y + 6, 4, 4);
-  R(g, '#fff0a0', x + 7, y + 8, 2, 2); R(g, '#f05a1e', x + 7, y + 2 + f * 2, 2, 2);
-}
 function frameObj(tx, key, color) {
   return { x: tx * 16, y: 16, base: 32, draw(g, x, y) {
     R(g, '#202020', x + 1, y + 1, 14, 12); R(g, '#a06838', x + 2, y + 2, 12, 10);
@@ -345,13 +424,114 @@ function frameObj(tx, key, color) {
     else { R(g, color, x + 3, y + 3, 10, 8); R(g, '#ffffff', x + 5, y + 7, 3, 3); R(g, '#ffffff', x + 8, y + 5, 3, 5); }
   }};
 }
+/* ---------- 움직이는 오브젝트 ---------- */
+function drawCampfire(g, x, y, t) {
+  const cx = x + 16, cy = y + 22;
+  const stones = front => {
+    for (let i = 0; i < 14; i++) {
+      const a = i / 14 * Math.PI * 2;
+      if ((Math.sin(a) > 0) !== front) continue;
+      const sx = Math.round(cx + Math.cos(a) * 13) - 2, sy = Math.round(cy + Math.sin(a) * 6) - 2;
+      R(g, '#1c1c20', sx, sy, 5, 4); R(g, '#3a3a40', sx + 1, sy, 3, 3); R(g, '#55555c', sx + 1, sy, 2, 1);
+    }
+  };
+  R(g, '#2a1a12', cx - 11, cy - 4, 22, 9);
+  stones(false);
+  R(g, '#3a2414', cx - 9, cy - 5, 18, 4); R(g, '#7a4c26', cx - 8, cy - 4, 16, 2);
+  R(g, '#3a2414', cx - 3, cy - 7, 6, 7); R(g, '#8a5a30', cx - 2, cy - 6, 4, 5);
+  for (let i = 0; i < 6; i++) if ((Math.floor(t * 7) + i) % 3) R(g, '#ff6a20', cx - 8 + i * 3, cy - 1, 2, 1);
+  const fh = 17 + Math.round(Math.sin(t * 11) * 2 + Math.sin(t * 17) * 1.5);
+  const layer = (col, H, W) => {
+    for (let r = 0; r < H; r++) {
+      const w = Math.max(1, Math.round(W * Math.sqrt(Math.max(0, 1 - r / H))));
+      const sway = Math.round(Math.sin(t * 9 + r * 0.45) * (r / H) * 2.5);
+      R(g, col, cx - (w >> 1) + sway, cy - 5 - r, w, 1);
+    }
+  };
+  layer('#e0401a', fh, 14); layer('#f8902a', Math.round(fh * 0.72), 10); layer('#ffe07a', Math.round(fh * 0.42), 5);
+  for (let k = 0; k < 6; k++) {
+    const p = (t * 0.7 + k / 6) % 1;
+    if (p > 0.92) continue;
+    R(g, p < 0.5 ? '#ffd27a' : '#ff7a2a', cx + Math.round(Math.sin(k * 2.3 + t * 1.7) * (3 + p * 6)), cy - 10 - Math.round(p * 34), 1, 1);
+  }
+  stones(true);
+}
+function drawSinger(g, x, y, t) {
+  const beat = Math.floor(t * 4) % 2, bob = Math.floor(t * 2) % 2;
+  R(g, '#202428', x + 1, y + 4, 14, 10); R(g, '#2f6f5a', x + 2, y + 5, 12, 8);
+  R(g, '#202428', x + 2, y + 17, 1, 5); R(g, '#202428', x + 13, y + 17, 1, 5);
+  R(g, '#202428', x + 1, y + 14, 14, 4); R(g, '#2f6f5a', x + 2, y + 15, 12, 2);
+  const hy = y + bob;
+  R(g, '#282830', x + 4, hy + 1, 8, 7); R(g, '#282830', x + 5, hy, 6, 9);
+  R(g, '#f0c098', x + 5, hy + 1, 6, 7); R(g, '#fff0d8', x + 6, hy + 1, 3, 1);
+  R(g, '#282830', x + 6, hy + 4, 1, 1); R(g, '#282830', x + 9, hy + 4, 1, 1);
+  R(g, '#a03830', x + 7, hy + 6, 2, beat ? 2 : 1);
+  R(g, '#282830', x + 3, y + 9, 10, 7); R(g, '#e8e4dc', x + 4, y + 9, 8, 6);
+  R(g, '#3a5a8c', x + 4, y + 15, 3, 5); R(g, '#3a5a8c', x + 9, y + 15, 3, 5);
+  R(g, '#282830', x + 4, y + 20, 3, 2); R(g, '#282830', x + 9, y + 20, 3, 2);
+  R(g, '#3a2010', x + 1, y + 11, 8, 6); R(g, '#c8803a', x + 2, y + 12, 6, 4); R(g, '#e0a050', x + 2, y + 12, 6, 1);
+  R(g, '#2a1a10', x + 4, y + 13, 2, 2);
+  R(g, '#5a3418', x + 8, y + 12, 7, 1); R(g, '#5a3418', x + 14, y + 11, 2, 2);
+  R(g, '#f0c098', x + 13, y + 11, 2, 2);
+  R(g, '#f0c098', x + 4 + beat, y + 11 + beat, 2, 2);
+  for (let k = 0; k < 2; k++) {
+    const p = (t * 0.5 + k * 0.5) % 1;
+    if (p > 0.9) continue;
+    const nx = x + 12 + k * 3 + Math.round(Math.sin(t * 3 + k) * 2), ny = y - 2 - Math.round(p * 16);
+    g.globalAlpha = 1 - p;
+    R(g, '#fff4d0', nx, ny, 2, 2); R(g, '#fff4d0', nx + 1, ny - 4, 1, 4); R(g, '#fff4d0', nx + 2, ny - 4, 2, 1);
+    g.globalAlpha = 1;
+  }
+}
+function drawGrill(g, x, y, t) {
+  g.drawImage(IMG.grill, x, y);
+  for (let i = 0; i < 7; i++) if ((Math.floor(t * 6) + i * 2) % 3 === 0) R(g, '#ff7a2a', x + 3 + i * 4, y + 11, 2, 1);
+  for (let k = 0; k
+    const p = (t * 0.35 + k / 4) % 1, s = 3 + Math.round(p * 4);
+    g.fillStyle = 'rgba(220,220,225,' + (0.45 * (1 - p)).toFixed(2) + ')';
+    g.fillRect(x + 8 + k * 4 + Math.round(Math.sin(t * 1.5 + k) * 3 * p), y + 4 - Math.round(p * 26), s, s);
+  }
+}
+function drawBoat(g, x, y, t) {
+  const b1 = Math.round(wave(t, 22 * 16 + 6) * 1.5), b2 = Math.round(wave(t, 22 * 16 + 40) * 1.5);
+  for (let i = 0; i < 36; i++) {
+    const off = Math.round(b1 + (b2 - b1) * i / 35), tp = i < 3 ? 3 - i : i > 32 ? i - 32 : 0;
+    const top = y + 2 + off + tp, bot = y + 13 + off;
+    R(g, '#202020', x + i, top, 1, bot - top + 1);
+    if (tp >= 3) continue;
+    R(g, i % 11 === 5 ? '#6a4220' : '#9a6a36', x + i, top + 1, 1, 3);
+    R(g, '#f4f4f0', x + i, top + 4, 1, 3);
+    R(g, '#2f6fd0', x + i, top + 7, 1, 2);
+    if (bot - top - 9 > 0) R(g, '#c84030', x + i, top + 9, 1, bot - top - 9);
+  }
+  const wl = y + 11 + Math.round((b1 + b2) / 2);
+  g.fillStyle = 'rgba(64,178,176,0.85)'; g.fillRect(x - 2, wl, 40, 4);
+  for (let i = Math.floor(t * 6) % 4; i < 40; i += 4) R(g, '#effffb', x - 2 + i, wl, 2, 1);
+  const sx = 21 * 16 + 11 - cam.x, sy = 21 * 16 + 4 - cam.y, ex = x + 1, ey = y + 5 + b1, n = Math.max(1, ex - sx);
+  for (let k = 0; k <= n; k++) R(g, '#e8dcb0', sx + k, Math.round(sy + (ey - sy) * k / n + Math.sin(Math.PI * k / n) * 2), 1, 1);
+}
+function drawTube(g, x, y, t) {
+  if (phase() === 'night') return;
+  const b = Math.round(wave(t, 19 * 16 + 8) * 1.5);
+  x += Math.round(Math.sin(t * 0.45) * 3);
+  const rp = Math.floor(t * 2) % 2;
+  R(g, '#d8f6f0', x - rp, y + 15, 16 + rp * 2, 1);
+  y += b;
+  R(g, '#282830', x + 4, y + 1, 8, 8); R(g, '#3a2a20', x + 5, y + 2, 6, 3);
+  R(g, '#f0c098', x + 5, y + 4, 6, 4); R(g, '#282830', x + 6, y + 5, 1, 1); R(g, '#282830', x + 9, y + 5, 1, 1);
+  R(g, '#f0c098', x + 3, y + 8, 10, 3);
+  R(g, '#282830', x, y + 9, 16, 6); R(g, '#f05a6a', x + 1, y + 10, 14, 4);
+  [2, 7, 12].forEach(i => R(g, '#ffffff', x + i, y + 10, 2, 4));
+  R(g, '#ff9aa4', x + 1, y + 10, 14, 1);
+  R(g, '#f0c098', x + 1, y + 9, 2, 2); R(g, '#f0c098', x + 13, y + 9, 2, 2);
+}
 
 /* =========================================================
    5. 맵
    ========================================================= */
 const grid = (w, h, c) => Array.from({ length: h }, () => Array(w).fill(c));
 const fill = (m, x, y, w, h, c) => { for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (m[j] && m[j][i] !== undefined) m[j][i] = c; };
-const WALK = new Set(['.', 'p', 'f', 'D', 'o', 'r', 'E']);
+const WALK = new Set(['.', 'p', 'f', 'D', 'G', 'q', 'o', 'r', 'E', 'l', 'Q']);
 
 function grassTile(g, X, Y, tx, ty) {
   R(g, '#78c878', X, Y, 16, 16);
@@ -362,32 +542,60 @@ function grassTile(g, X, Y, tx, ty) {
   }
 }
 function buildGround(map) {
-  const { w, h, grid: m } = map;
+  const w = map.w, h = map.h, m = map.grid;
   const [c, g] = makeCanvas(w * 16, h * 16);
   const at = (x, y) => (m[y] && m[y][x]) || '';
+  const SEA = ['#7ad8cc', '#54c4ba', '#40b2b0', '#349ea8', '#2c8ea0', '#287f98'];
+  const rock = (X, Y, hh) => {
+    R(g, '#1c1c20', X + 1, Y + 2, 14, 13); R(g, '#1c1c20', X + 2, Y + 1, 12, 15);
+    R(g, '#3a3a40', X + 2, Y + 2, 12, 12); R(g, '#52525a', X + 3, Y + 3, 6, 2);
+    for (let i = 0; i < 4; i++) R(g, '#18181c', X + 3 + ((hh >> (i * 3)) % 9), Y + 6 + ((hh >> (i * 4)) % 6), 2, 1);
+  };
+  const litter = (X, Y, hh, base) => {
+    R(g, base, X, Y, 16, 16);
+    const cols = ['#b8935e', '#6a4c2a', '#c8a870'];
+    for (let i = 0; i < 7; i++) R(g, cols[i % 3], X + ((hh >> (i * 4)) & 15), Y + ((hh >> (i * 4 + 2)) & 15), i % 2 ? 3 : 2, 1);
+  };
   for (let ty = 0; ty < h; ty++) for (let tx = 0; tx < w; tx++) {
     const ch = m[ty][tx], X = tx * 16, Y = ty * 16, hh = hsh(tx, ty);
     if (map.id === 'town') {
       if (ch === 'M') R(g, '#a8d8f8', X, Y, 16, 16);
       else if (ch === 'p' || ch === 'D') {
         R(g, '#e8d098', X, Y, 16, 16); R(g, '#d8b878', X + hh % 13, Y + (hh >> 4) % 13, 2, 1);
-        const isP = (x, y) => ['p', 'D'].includes(at(x, y));
+        const isP = (x, y) => ['p', 'D', 'G'].includes(at(x, y));
         if (!isP(tx, ty - 1)) R(g, '#c8a868', X, Y, 16, 2);
         if (!isP(tx, ty + 1)) R(g, '#c8a868', X, Y + 14, 16, 2);
         if (!isP(tx - 1, ty)) R(g, '#c8a868', X, Y, 2, 16);
         if (!isP(tx + 1, ty)) R(g, '#c8a868', X + 14, Y, 2, 16);
-      } else if (ch === 'w') {
-        R(g, '#58a8e8', X, Y, 16, 16);
-        R(g, '#90c8f8', X + 2 + hh % 6, Y + 4, 4, 1); R(g, '#90c8f8', X + 8 - hh % 4, Y + 11, 5, 1);
-        if (at(tx, ty - 1) !== 'w') { R(g, '#f0e8c0', X, Y, 16, 2); R(g, '#3c88c8', X, Y + 2, 16, 1); }
-        if (at(tx, ty + 1) !== 'w') R(g, '#f0e8c0', X, Y + 14, 16, 2);
-        if (at(tx - 1, ty) !== 'w') R(g, '#f0e8c0', X, Y, 2, 16);
-        if (at(tx + 1, ty) !== 'w') R(g, '#f0e8c0', X + 14, Y, 2, 16);
+      } else if (ch === 'S' || (ch === 'k' && ty >= 20)) {
+        R(g, SEA[Math.min(5, Math.max(0, ty - 20))], X, Y, 16, 16);
+        R(g, 'rgba(255,255,255,0.12)', X + hh % 13, Y + (hh >> 4) % 13, 3, 1);
+        if (ch === 'k') rock(X, Y, hh);
+      } else if (ch === 'q' || ch === 'k') {
+        R(g, '#bab8ae', X, Y, 16, 16); R(g, '#a6a49a', X, Y + 15, 16, 1); R(g, '#a6a49a', X + 15, Y, 1, 16);
+        R(g, '#cac8be', X + hh % 12, Y + (hh >> 4) % 12, 2, 1);
+        if (!['q', 'k'].includes(at(tx, ty - 1))) R(g, '#d8d6cc', X, Y, 16, 1);
+        if (ch === 'q' && ty === 23) { R(g, '#a8a69c', X, Y + 4, 16, 2); R(g, '#9a988e', X, Y + 8, 16, 2); }
+        if (at(tx, ty + 1) === 'S' || (at(tx, ty + 1) === 'k' && ty + 1 >= 20)) { R(g, '#82807a', X, Y + 12, 16, 4); R(g, '#6a8a4a', X, Y + 15, 16, 1); }
+        if (at(tx - 1, ty) === 'S') R(g, '#8e8c84', X, Y, 2, 16);
+        if (at(tx + 1, ty) === 'S') R(g, '#8e8c84', X + 14, Y, 2, 16);
+        if (ch === 'k') rock(X, Y, hh);
+      } else if (ch === 'B') {
+        R(g, '#22301c', X, Y, 16, 16); R(g, '#2e3e24', X + hh % 12, Y + (hh >> 4) % 12, 3, 1);
+      } else if (ch === 'G') {
+        R(g, '#3a2e1c', X, Y, 16, 16); R(g, '#1a140c', X, Y, 16, 6); R(g, '#241c10', X, Y + 6, 16, 3);
+        R(g, '#6a5434', X + 3 + hh % 8, Y + 10, 3, 1); R(g, '#7a6040', X + 9, Y + 13, 2, 1);
       } else {
         grassTile(g, X, Y, tx, ty);
         if (ch === 'f') [[3, 3], [10, 9]].forEach(([fx, fy]) => {
           R(g, '#f07848', X + fx, Y + fy + 1, 3, 1); R(g, '#f07848', X + fx + 1, Y + fy, 1, 3); R(g, '#f8e070', X + fx + 1, Y + fy + 1);
         });
+      }
+    } else if (map.id === 'bamboo') {
+      if (ch === 'B') { R(g, '#1a2414', X, Y, 16, 16); R(g, '#3a3020', X + hh % 12, Y + (hh >> 4) % 12, 3, 1); }
+      else {
+        litter(X, Y, hh, Math.hypot(tx + 0.5 - 9, ty + 0.5 - 9) < 3.4 ? '#a08058' : '#8a6a40');
+        if (ch === 'Q') R(g, 'rgba(0,0,0,0.35)', X, Y, 16, 16);
       }
     } else {
       if (ch === 'W') {
@@ -409,7 +617,6 @@ function buildGround(map) {
     }
   }
   if (map.id === 'town') {
-    // 한라산 (넓은 방패형 산 + 백록담 분화구)
     const cx = w * 8, top = 12, bot = 80;
     for (let y = top; y < bot; y++) {
       const t = (y - top) / (bot - top), half = Math.round(46 + 200 * Math.pow(t, 1.7));
@@ -418,39 +625,48 @@ function buildGround(map) {
     }
     R(g, '#6f7c6c', cx - 24, top, 48, 2); R(g, '#e8eef0', cx - 40, top + 3, 24, 1); R(g, '#e8eef0', cx + 12, top + 4, 20, 1);
     [[40, 18], [w * 16 - 90, 26]].forEach(([x, y]) => { R(g, '#ffffff', x, y + 4, 28, 6); R(g, '#ffffff', x + 6, y, 14, 6); R(g, '#e0eef8', x, y + 9, 28, 1); });
+    const bollard = (bx, by) => { R(g, '#141416', bx, by, 6, 3); R(g, '#2a2a2e', bx + 1, by + 2, 4, 5); R(g, '#4a4a52', bx + 1, by, 2, 1); };
+    bollard(21 * 16 + 9, 21 * 16 + 2); bollard(6 * 16 + 5, 19 * 16 + 3); bollard(26 * 16 + 5, 19 * 16 + 3);
   }
   return c;
 }
 
-function npc(x, y, spr, lines) {
-  return { x, y, px: x * 16, py: y * 16, nx: x, ny: y, dir: 'down', moving: false, t: 0, flip: false,
+function npc(x, y, spr, lines, opts) {
+  opts = opts || {};
+  const dir = opts.dir || 'down';
+  return { x, y, px: x * 16, py: y * 16, nx: x, ny: y, dir, baseDir: dir, stay: !!opts.stay, moving: false, t: 0, flip: false,
            home: { x, y }, timer: 1 + Math.random() * 2, spr, lines, talking: false };
 }
 
 function buildTown() {
   const W = 32, H = 26, m = grid(W, H, '.');
-  fill(m, 0, 0, W, 5, 'M');                         // 하늘 + 한라산
-  fill(m, 0, 5, W, 1, 'T');                         // 산 아래 나무줄
-  fill(m, 0, 5, 2, H - 5, 'T'); fill(m, W - 2, 5, 2, H - 5, 'T'); fill(m, 0, H - 2, W, 2, 'T');
-  fill(m, 9, 5, 2, 10, 'p');                        // 등산로
-  fill(m, 2, 14, W - 4, 2, 'p');                    // 큰길
-  fill(m, 15, 13, 2, 1, 'p'); fill(m, 15, 16, 2, 8, 'p');
+  fill(m, 0, 0, W, 5, 'M');
+  fill(m, 0, 5, W, 1, 'T');
+  fill(m, 0, 5, 2, 13, 'T'); fill(m, W - 2, 5, 2, 13, 'T');
+  fill(m, 2, 5, 7, 8, 'B');
+  m[12][5] = 'G'; m[13][5] = 'p';
+  fill(m, 9, 5, 2, 10, 'p');
+  fill(m, 2, 14, W - 4, 2, 'p');
+  fill(m, 15, 13, 2, 1, 'p'); fill(m, 15, 16, 2, 2, 'p');
   fill(m, 3, 16, 4, 2, 'f'); fill(m, 21, 17, 3, 1, 'f'); fill(m, 12, 6, 3, 1, 'f'); fill(m, 20, 7, 2, 2, 'f');
-  fill(m, 3, 19, 6, 4, 'w');                        // 연못
-  fill(m, 24, 19, 4, 3, 'T'); fill(m, 27, 6, 3, 2, 'T');
-  fill(m, 13, 9, 6, 4, 'X'); m[12][15] = 'D'; m[12][16] = 'D';   // 집 + 문
-  fill(m, 3, 9, 2, 2, 'X'); fill(m, 6, 9, 2, 2, 'X'); m[12][5] = 'X'; // 텐트 · 모닥불
-  fill(m, 23, 10, 4, 2, 'X');                       // 굿즈 가판대
-  [[14, 13], [19, 12], [21, 13], [11, 6], [12, 16], [19, 16]].forEach(([x, y]) => m[y][x] = 'X');
+  fill(m, 27, 6, 3, 2, 'T');
+  fill(m, 0, 18, W, 2, 'q');
+  fill(m, 0, 18, 2, 2, 'k'); fill(m, W - 2, 18, 2, 2, 'k');
+  fill(m, 0, 20, W, H - 20, 'S');
+  fill(m, 20, 20, 2, 4, 'q');
+  [[0, 20], [1, 20], [2, 20], [3, 20], [2, 21], [28, 20], [29, 20], [30, 20], [31, 20], [29, 21], [30, 21]].forEach(([x, y]) => m[y][x] = 'k');
+  fill(m, 13, 9, 6, 4, 'X'); m[12][15] = 'D'; m[12][16] = 'D';
+  fill(m, 23, 10, 4, 2, 'X');
+  [[14, 13], [19, 12], [21, 13], [11, 6], [12, 16], [19, 16], [17, 17]].forEach(([x, y]) => m[y][x] = 'X');
 
-  const map = { id: 'town', w: W, h: H, grid: m };
+  const map = { id: 'town', w: W, h: H, grid: m, sea: true };
   map.ground = buildGround(map);
   const o = [];
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (m[y][x] === 'T') o.push({ img: IMG.tree, x: x * 16, y: y * 16 - 8, base: y * 16 + 16 });
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (m[y][x] === 'T') o.push({ img: IMG.tree, x: x * 16, y: y * 16 - 8, base: y * 16 + 16 });
+    if (m[y][x] === 'B') o.push({ img: IMG.bamboo[hsh(x, y) % 3], x: x * 16 - 1, y: y * 16 - 36, base: y * 16 + 16 });
+  }
   o.push({ img: IMG.house, x: 13 * 16, y: 13 * 16 - 98, base: 13 * 16 });
-  o.push({ img: IMG.tentA, x: 3 * 16, y: 11 * 16 - 28, base: 11 * 16 });
-  o.push({ img: IMG.tentB, x: 6 * 16, y: 11 * 16 - 28, base: 11 * 16 });
-  o.push({ draw: drawFire, x: 5 * 16, y: 12 * 16, base: 13 * 16 });
   o.push({ img: IMG.stall, x: 23 * 16, y: 12 * 16 - 44, base: 12 * 16 });
   o.push({ img: IMG.sign, x: 14 * 16, y: 13 * 16, base: 14 * 16 });
   o.push({ img: IMG.sign, x: 11 * 16, y: 6 * 16, base: 7 * 16 });
@@ -458,25 +674,29 @@ function buildTown() {
   o.push({ img: IMG.insta, x: 21 * 16, y: 13 * 16, base: 14 * 16 });
   o.push({ img: IMG.lamp, x: 12 * 16, y: 17 * 16 - 32, base: 17 * 16 });
   o.push({ img: IMG.lamp, x: 19 * 16, y: 17 * 16 - 32, base: 17 * 16 });
+  o.push({ draw: (g, x, y) => g.drawImage(IMG.monument, x, y), x: 17 * 16 - 4, y: 18 * 16 - 76, base: 18 * 16 });
+  o.push({ draw: drawBoat, x: 22 * 16 + 6, y: 21 * 16 + 2, base: 22 * 16 + 16 });
+  o.push({ draw: drawTube, x: 19 * 16, y: 22 * 16 - 4, base: 22 * 16 + 16 });
   map.objects = o;
   map.acts = [
     { x: 9, y: 4, w: 2, h: 1, kind: 'archive', key: 'hallasan' },
     { x: 11, y: 6, w: 1, h: 1, kind: 'dialog', lines: ['↑ 한라산 등산로', '16명이서 다함께 올랐던 날의 기록이 이 길 끝에 있어요.'] },
-    { x: 3, y: 9, w: 2, h: 2, kind: 'archive', key: 'camp', up: 1 },
-    { x: 6, y: 9, w: 2, h: 2, kind: 'archive', key: 'camp', up: 1 },
-    { x: 5, y: 12, w: 1, h: 1, kind: 'archive', key: 'camp' },
     { x: 23, y: 10, w: 4, h: 2, kind: 'archive', key: 'goods', up: 1 },
     { x: 14, y: 13, w: 1, h: 1, kind: 'dialog', lines: ['머리 닿는 집', '김영수가 살면서, 사람들을 모아 캠프를 진행한 50년된 구옥.', '집 안에 들어가 기록들을 살펴보세요!'] },
     { x: 19, y: 12, w: 1, h: 1, kind: 'contact', up: 1 },
-    { x: 21, y: 13, w: 1, h: 1, kind: 'insta' }
+    { x: 21, y: 13, w: 1, h: 1, kind: 'insta' },
+    { x: 17, y: 17, w: 1, h: 1, kind: 'dialog', up: 4, lines: ['「구두미 포구」', '커다란 비석에 세로로 새겨져 있다.'] },
+    { x: 22, y: 21, w: 3, h: 2, kind: 'dialog', lines: ['밧줄에 묶인 작은 보트가 파도에 흔들리고 있다.'] },
+    { x: 19, y: 22, w: 1, h: 1, kind: 'talk', up: 1, cond: () => phase() !== 'night', lines: ['물 진짜 맑다~ 둥둥…', '(튜브에 몸을 맡긴 채 파도를 타고 있다)'] }
   ];
   map.npcs = [
     npc(22, 18, SPR.npc1, ['안녕! 여긴 000 마을이야.', '김영수가 진행한 프로젝트들을 모아둔 마을이지.', '자유롭게 구경해 봐!']),
-    npc(7, 13, SPR.npc2, ['대나무 숲 안에 들어가봐. 숨섬쉼에서의 기록들이 있을 거야.', '이동할 때 Shift(모바일은 B)를 누르고 있으면 달릴 수 있어!'])
+    npc(6, 13, SPR.npc2, ['대나무 숲 안에 들어가봐. 숨섬쉼에서의 기록들이 있을 거야.', '이동할 때 Shift(모바일은 B)를 누르고 있으면 달릴 수 있어!'], { stay: true })
   ];
   map.lights = [
     { x: 12 * 16 + 8, y: 16 * 16 + 4, r: 44 }, { x: 19 * 16 + 8, y: 16 * 16 + 4, r: 44 },
-    { x: 5 * 16 + 8, y: 12 * 16 + 8, r: 56 }, { x: 16 * 16, y: 12 * 16 + 10, r: 38 }, { x: 25 * 16, y: 10 * 16, r: 40 }
+    { x: 16 * 16, y: 12 * 16 + 10, r: 38 }, { x: 25 * 16, y: 10 * 16, r: 40 },
+    { x: 5 * 16 + 8, y: 12 * 16 + 6, r: 26, a: 0.45, flicker: true, color: '255,150,70' }
   ];
   return map;
 }
@@ -506,17 +726,62 @@ function buildHouse() {
   ];
   map.npcs = [];
   map.lights = [];
+  map.welcome = ['머리 닿는 집에 오신 걸 환영해요!', '벽에 걸린 작업물이나 물건 앞에서 A를 누르거나, 직접 눌러 보세요.'];
   return map;
 }
-const MAPS = { town: buildTown(), house: buildHouse() };
-let cur = MAPS.town;
 
+function buildBamboo() {
+  const W = 18, H = 18, m = grid(W, H, 'l');
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (Math.hypot(x + 0.5 - 9, y + 0.5 - 9) > 6.3) m[y][x] = 'B';
+  fill(m, 8, 15, 2, 1, 'l'); fill(m, 8, 16, 2, 2, 'Q');
+  fill(m, 8, 8, 2, 2, 'X');
+  fill(m, 8, 6, 2, 1, 'X');
+  m[8][6] = 'X'; m[9][6] = 'X'; m[8][11] = 'X'; m[9][11] = 'X';
+  m[11][7] = 'X'; m[11][10] = 'X';
+  m[6][4] = 'X';
+  fill(m, 12, 6, 2, 1, 'X');
+  fill(m, 12, 11, 2, 1, 'X');
+  const map = { id: 'bamboo', w: W, h: H, grid: m, bg: '#121a0e' };
+  map.ground = buildGround(map);
+  const o = [];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++)
+    if (m[y][x] === 'B') o.push({ img: IMG.bamboo[hsh(x, y) % 3], x: x * 16 - 1, y: y * 16 - 36, base: y * 16 + 16 });
+  o.push({ draw: drawCampfire, x: 128, y: 128, base: 160 });
+  o.push({ draw: drawSinger, x: 136, y: 90, base: 112 });
+  o.push({ img: IMG.logV, x: 6 * 16 + 2, y: 8 * 16 + 3, base: 160 });
+  o.push({ img: IMG.logV, x: 11 * 16 + 2, y: 8 * 16 + 3, base: 160 });
+  o.push({ img: IMG.logH, x: 7 * 16 - 5, y: 11 * 16 + 3, base: 192 });
+  o.push({ img: IMG.logH, x: 10 * 16 - 5, y: 11 * 16 + 3, base: 192 });
+  o.push({ img: IMG.tires, x: 4 * 16 - 1, y: 7 * 16 - 30, base: 112 });
+  o.push({ draw: drawGrill, x: 12 * 16, y: 7 * 16 - 26, base: 112 });
+  o.push({ img: IMG.logPile, x: 12 * 16 - 1, y: 12 * 16 - 34, base: 192 });
+  map.objects = o;
+  const LOG = ['통나무 의자. 다들 여기 앉아 노래를 들었다.'];
+  map.acts = [
+    { x: 8, y: 8, w: 2, h: 2, kind: 'archive', key: 'camp', up: 1 },
+    { x: 12, y: 6, w: 2, h: 1, kind: 'archive', key: 'camp', up: 1 },
+    { x: 8, y: 6, w: 2, h: 1, kind: 'talk', up: 1, lines: ['♪ ~ ♬ ~', '(눈을 감고 기타를 치며 노래하고 있다…)'] },
+    { x: 4, y: 6, w: 1, h: 1, kind: 'dialog', up: 1, lines: ['타이어 네 짝이 차곡차곡 쌓여 있다.'] },
+    { x: 12, y: 11, w: 2, h: 1, kind: 'dialog', up: 1, lines: ['통나무 더미에 도끼 한 자루가 꽂혀 있다.'] },
+    { x: 6, y: 8, w: 1, h: 2, kind: 'dialog', lines: LOG }, { x: 11, y: 8, w: 1, h: 2, kind: 'dialog', lines: LOG },
+    { x: 7, y: 11, w: 1, h: 1, kind: 'dialog', lines: LOG }, { x: 10, y: 11, w: 1, h: 1, kind: 'dialog', lines: LOG }
+  ];
+  map.npcs = [];
+  map.lights = [
+    { x: 144, y: 146, r: 120, a: 0.75, flicker: true, color: '255,160,80' },
+    { x: 13 * 16, y: 7 * 16 - 16, r: 34, a: 0.5, flicker: true, color: '255,110,60' }
+  ];
+  map.welcome = ['대나무 숲 안으로 들어왔다.', '모닥불 타는 소리와 기타 소리가 들려온다…'];
+  return map;
+}
+const MAPS = { town: buildTown(), house: buildHouse(), bamboo: buildBamboo() };
+let cur = MAPS.town;
 /* =========================================================
    6. 플레이어 · 이동
    ========================================================= */
 const P = { x: 16, y: 15, px: 256, py: 240, nx: 16, ny: 15, dir: 'up', moving: false, t: 0, flip: false, idle: true, turnT: 0, spr: SPR.player };
 const DIRV = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
-let state = 'title', fading = false, modalOpen = false, bHeld = false, joyDir = null, houseVisited = false;
+let state = 'title', fading = false, modalOpen = false, bHeld = false, joyDir = null;
 const keys = {};
 
 function canWalk(map, x, y, self) {
@@ -541,7 +806,7 @@ function inputDir() {
   if (joyDir) return joyDir;
   if (keys.arrowup || keys.w) return 'up';
   if (keys.arrowdown || keys.s) return 'down';
-  if (keys.arrowleft || keys.a) return 'left';
+  ifft || keys.a) return 'left';
   if (keys.arrowright || keys.d) return 'right';
   return null;
 }
@@ -561,7 +826,9 @@ function updatePlayer(dt) {
 function checkTrigger() {
   const c = cur.grid[P.y][P.x];
   if (cur.id === 'town' && c === 'D') { goMap('house', P.x - 10, 8, 'up'); return true; }
+  if (cur.id === 'town' && c === 'G') { goMap('bamboo', 9, 15, 'up'); return true; }
   if (cur.id === 'house' && c === 'E') { goMap('town', P.x + 10, 13, 'down'); return true; }
+  if (cur.id === 'bamboo' && c === 'Q') { goMap('town', 5, 13, 'down'); return true; }
   return false;
 }
 function goMap(id, x, y, dir) {
@@ -573,19 +840,19 @@ function goMap(id, x, y, dir) {
     $('fade').style.opacity = 0;
     setTimeout(() => {
       fading = false;
-      if (id === 'house' && !houseVisited) { houseVisited = true; say(['머리 닿는 집에 오신 걸 환영해요!', '벽에 걸린 작업물이나 물건 앞에서 A를 누르거나, 직접 눌러 보세요.']); }
+      if (cur.welcome && !cur.visited) { cur.visited = true; say(cur.welcome); }
     }, 260);
   }, 260);
 }
 function updateNPCs(dt) {
   for (const n of cur.npcs) {
     if (n.moving) { advanceMove(n, dt, 3); continue; }
-    if (n.talking) continue;
+    if (n.talking || n.stay) continue;
     n.timer -= dt;
     if (n.timer > 0) continue;
     n.timer = 1.5 + Math.random() * 2.5;
-    const d = ['up', 'down', 'left', 'right'][Math.random() * 4 | 0], [dx, dy] = DIRV[d];
-    if (Math.abs(n.x + dx - n.home.x) <= 3 && Math.abs(n.y + dy - n.home.y) <= 2) tryMove(n, d, cur); else n.dir = d;
+    const d = ['up', 'down', 'left', 'right'][Math.random() * 4 | 0], dv = DIRV[d];
+    if (Math.abs(n.x + dv[0] - n.home.x) <= 3 && Math.abs(n.y + dv[1] - n.home.y) <= 2) tryMove(n, d, cur); else n.dir = d;
   }
 }
 
@@ -593,6 +860,7 @@ function updateNPCs(dt) {
    7. 대화 · 상호작용
    ========================================================= */
 const dlg = { active: false, lines: [], i: 0, shown: 0, full: '', done: null };
+const actOn = a => !a.cond || a.cond();
 function say(lines, done) {
   Object.assign(dlg, { active: true, lines, i: 0, done });
   dlg.full = lines[0]; dlg.shown = 0;
@@ -602,23 +870,22 @@ function advance() {
   if (dlg.shown < dlg.full.length) { dlg.shown = dlg.full.length; return; }
   if (++dlg.i >= dlg.lines.length) {
     dlg.active = false; $('dialog').classList.remove('show');
-    const d = dlg.done; dlg.done = null; d && d();
+    const d = dlg.done; dlg.done = null; if (d) d();
   } else { dlg.full = dlg.lines[dlg.i]; dlg.shown = 0; }
 }
 function facing() {
-  const [dx, dy] = DIRV[P.dir], fx = P.x + dx, fy = P.y + dy;
+  const dv = DIRV[P.dir], fx = P.x + dv[0], fy = P.y + dv[1];
   const n = cur.npcs.find(n => n.x === fx && n.y === fy);
   if (n) return { kind: 'npc', npc: n };
-  return cur.acts.find(a => fx >= a.x && fx < a.x + a.w && fy >= a.y && fy < a.y + a.h) || null;
+  return cur.acts.find(a => actOn(a) && fx >= a.x && fx < a.x + a.w && fy >= a.y && fy < a.y + a.h) || null;
 }
 function interact(a) {
-  sfx('a');
-  if (a.kind === 'npc') {
+  sfx('kind === 'npc') {
     const n = a.npc, dx = P.x - n.x, dy = P.y - n.y;
     n.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
-    n.talking = true; say(n.lines, () => n.talking = false);
+    n.talking = true; say(n.lines, () => { n.talking = false; if (n.stay) n.dir = n.baseDir; });
   } else if (a.kind === 'archive') openArchive(a.key);
-  else if (a.kind === 'dialog') say(a.lines);
+  else if (a.kind === 'dialog' || a.kind === 'talk') say(a.lines);
   else if (a.kind === 'contact') openContact();
   else if (a.kind === 'insta') openInsta();
 }
@@ -632,7 +899,7 @@ function pressA() {
 function pressB() { if (modalOpen) closeModal(); else if (dlg.active) advance(); }
 
 /* =========================================================
-   8. 모달 (상세 · 인스타 · 컨택트 · 목록)
+   8. 모달
    ========================================================= */
 let modalNav = null;
 const sheet = $('sheet');
@@ -663,8 +930,9 @@ function openArchive(key) {
         <button class="btn close">닫기</button>
       </div>`;
     const v = sheet.querySelector('.viewer');
-    v.querySelector('.prev')?.addEventListener('click', () => go(-1));
-    v.querySelector('.next')?.addEventListener('click', () => go(1));
+    const pv = v.querySelector('.prev'), nx = v.querySelector('.next');
+    if (pv) pv.addEventListener('click', () => go(-1));
+    if (nx) nx.addEventListener('click', () => go(1));
     let sx = null;
     v.addEventListener('touchstart', e => sx = e.touches[0].clientX, { passive: true });
     v.addEventListener('touchend', e => { if (sx === null) return; const dx = e.changedTouches[0].clientX - sx; if (Math.abs(dx) > 40) go(dx < 0 ? 1 : -1); sx = null; });
@@ -684,12 +952,12 @@ function openInsta() {
     feed.innerHTML = INSTA_POSTS.map(u => `<blockquote class="instagram-media" data-instgrm-permalink="${esc(u)}" data-instgrm-version="14" style="width:100%;margin:12px 0"></blockquote>`).join('');
     if (window.instgrm) window.instgrm.Embeds.process();
     else { const s = document.createElement('script'); s.async = true; s.src = 'https://www.instagram.com/embed.js'; document.body.appendChild(s); }
-  } else feed.innerHTML = `<p class="hint">INSTA_POSTS에 게시물 주소를 넣으면 여기에 피드가 표시돼요. 이게 뭔 기능이지?</p>`;
+  } else feed.innerHTML = `<p class="hint">INSTA_POSTS에 게시물 주소를 넣으면 여기에 피드가 표시돼요.</p>`;
   showModal();
 }
 function openContact() {
   sheet.innerHTML = `
-    <div class="no">MAILBOX · CONTACT</div>
+    <div class="no">MAILB</div>
     <h2>편지 보내기</h2>
     <p class="desc">협업 제안, 캠프·등반 참여 문의, 굿즈 관련 연락은 언제든 환영해요.</p>
     <div class="actions" style="flex-direction:column;align-items:stretch">
@@ -709,8 +977,7 @@ function openList() {
       <button class="btn" data-k="__contact"><span>✉</span>컨택트</button>
     </div>
     <div class="actions"><button class="btn close">닫기</button></div>`;
-  sheet.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
-    const k = b.dataset.k; sfx('a');
+  sheet.querySelectorAll('[data-k]').forEach(b => b.onclick = b.dataset.k; sfx('a');
     if (k === '__insta') openInsta(); else if (k === '__contact') openContact(); else openArchive(k);
   });
   showModal();
@@ -738,20 +1005,23 @@ $('timeBtn').onclick = () => { timeMode = TIME_MODES[(TIME_MODES.indexOf(timeMod
 setInterval(updateClock, 10000); updateClock();
 
 /* =========================================================
-   10. 음악 · 효과음 (직접 작곡한 칩튠)
+   10. 음악 · 효과음
    ========================================================= */
 let actx = null, master = null, gains = [], loopTimer = null, curTrack = null, soundOn = true;
 const NI = { C: 0, 'C#': 1, D: 2, 'D#': 3, E: 4, F: 5, 'F#': 6, G: 7, 'G#': 8, A: 9, 'A#': 10, B: 11 };
 const freq = n => 440 * Math.pow(2, (NI[n.slice(0, -1)] + (+n.slice(-1) - 4) * 12 - 9) / 12);
-const parse = s => { let t = 0; return s.trim().split(/\s+/).map(tok => { const [n, l] = tok.split('.'); const e = { n, t, l: +l }; t += +l; return e; }); };
+const parse = s => { let t = 0; return s.trim().split(/\s+/).map(tok => { const p = tok.split('.'); const e = { n: p[0], t, l: +p[1] }; t += +p[1]; return e; }); };
 const TOWN_LEAD = 'C5.2 E5.2 G5.2 E5.2 F5.2 A5.2 G5.4 E5.2 G5.2 C6.2 B5.1 A5.1 G5.6 r.2 A5.2 G5.2 F5.2 E5.2 D5.2 E5.2 F5.4 E5.2 D5.2 C5.2 D5.2 C5.6 r.2';
 const TOWN_BASS = 'C3.2 G3.2 C3.2 G3.2 F2.2 C3.2 F2.2 C3.2 C3.2 G3.2 C3.2 G3.2 G2.2 D3.2 G2.2 D3.2 F2.2 C3.2 F2.2 C3.2 G2.2 D3.2 G2.2 D3.2 C3.2 G3.2 G2.2 B2.2 C3.2 G3.2 C3.4';
 const HOUSE_LEAD = 'G4.3 A4.1 B4.2 D5.2 C5.4 B4.2 A4.2 G4.2 E4.2 F4.2 A4.2 G4.8 A4.3 B4.1 C5.2 E5.2 D5.4 C5.2 B4.2 A4.2 F4.2 G4.2 B4.2 C5.8';
 const HOUSE_BASS = 'G2.4 D3.4 A2.4 E3.4 C3.4 F2.4 G2.4 D3.4 F2.4 C3.4 G2.4 B2.4 F2.4 G2.4 C3.8';
+const CAMP_LEAD = 'D5.2 B4.2 G4.2 B4.2 C5.4 A4.4 B4.2 G4.2 E4.2 G4.2 D4.8 E4.2 G4.2 A4.2 B4.2 C5.4 E5.4 D5.3 C5.1 B4.2 A4.2 G4.8';
+const CAMP_ARP = 'G2.2 D3.2 G3.2 D3.2 A2.2 E3.2 C3.2 E3.2 G2.2 D3.2 G3.2 D3.2 G2.2 D3.2 B2.2 D3.2 C3.2 G3.2 C4.2 G3.2 A2.2 E3.2 A3.2 E3.2 D3.2 A3.2 F#3.2 A3.2 G2.2 D3.2 G3.4';
 const TRACKS = {
   town:  { bpm: 124, parts: [{ wave: 'square', vol: .05, ev: parse(TOWN_LEAD) }, { wave: 'triangle', vol: .14, ev: parse(TOWN_BASS) }] },
   night: { bpm: 92,  parts: [{ wave: 'square', vol: .035, ev: parse(TOWN_LEAD) }, { wave: 'triangle', vol: .12, ev: parse(TOWN_BASS) }] },
-  house: { bpm: 100, parts: [{ wave: 'square', vol: .045, ev: parse(HOUSE_LEAD) }, { wave: 'triangle', vol: .13, ev: parse(HOUSE_BASS) }] }
+  house: { bpm: 100, parts: [{ wave: 'square', vol: .045, ev: parse(HOUSE_LEAD) }, { wave: 'triangle', vol: .13, ev: parse(HOUSE_BASS) }] },
+  camp:  { bpm: 84,  parts: [{ wave: 'triangle', vol: .14, ev: parse(CAMP_LEAD) }, { wave: 'square', vol: .025, ev: parse(CAMP_ARP) }] }
 };
 function tone(dest, type, f, t, d, v) {
   const o = actx.createOscillator(), g = actx.createGain();
@@ -779,7 +1049,9 @@ function playTrack(name) {
   if (gains.length) stopMusic();
   curTrack = name; scheduleLoop(actx.currentTime + 0.2);
 }
-function updateMusic() { playTrack(cur.id === 'house' ? 'house' : (phase() === 'night' ? 'night' : 'town')); }
+function updateMusic() {
+  playTrack(cur.id === 'house' ? 'house' : cur.id === 'bamboo' ? 'camp' : (phase() === 'night' ? 'night' : 'town'));
+}
 function sfx(type) {
   if (!actx || !soundOn) return;
   const t = actx.currentTime;
@@ -801,14 +1073,16 @@ $('sndBtn').onclick = () => {
 };
 
 /* =========================================================
-   11. 입력 (키보드 · 조이스틱 · 버튼 · 탭)
+   11. 입력
    ========================================================= */
 function start() {
   if (state !== 'title') return;
   state = 'play'; $('title').classList.add('hide');
   initAudio(); updateMusic();
 }
-$('title').addEventListener('click', start);
+['touchend', 'click'].forEach(ev =>
+  $('title').addEventListener(ev, e => { e.preventDefault(); start(); }, { passive: false })
+);
 addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
   if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
@@ -841,20 +1115,17 @@ $('btnB').addEventListener('pointerdown', e => { e.preventDefault(); bHeld = tru
 ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => $('btnB').addEventListener(ev, () => bHeld = false));
 $('dialog').addEventListener('click', () => { sfx('a'); advance(); });
 $('prompt').addEventListener('click', pressA);
-$('listBtn').onclick = () => { sfx('a'); openList(); };
-
-// 화면의 오브젝트·NPC를 직접 눌러도 열림
-cv.addEventListener('pointerup', e => {
+$('listBtn').onclick = () => { sfx('a'); openList(); };ener('pointerup', e => {
   if (locked()) return;
   const tx = Math.floor((e.clientX / scale + cam.x) / 16), ty = Math.floor((e.clientY / scale + cam.y) / 16);
   const n = cur.npcs.find(n => n.x === tx && (n.y === ty || n.y === ty + 1));
   if (n) return interact({ kind: 'npc', npc: n });
-  const a = cur.acts.find(a => tx >= a.x && tx < a.x + a.w && ty >= a.y - (a.up || 0) && ty < a.y + a.h);
+  const a = cur.acts.find(a => actOn(a) && tx >= a.x && tx < a.x + a.w && ty >= a.y - (a.up || 0) && ty < a.y + a.h);
   if (a) interact(a);
 });
 
 /* =========================================================
-   12. 화면 크기 · HUD · 렌더링
+   12. 화면 · 렌더링
    ========================================================= */
 let scale = 2;
 const cam = { x: 0, y: 0 };
@@ -866,7 +1137,7 @@ function resize() {
 }
 addEventListener('resize', resize); resize();
 
-const LABEL = { archive: '프로젝트 보기', dialog: '읽기', npc: '말 걸기', contact: '편지 보내기', insta: '인스타그램 보기' };
+const LABEL = { archive: '프로젝트 보기', dialog: '읽기', npc: '말 걸기', talk: '말 걸기', contact: '편지 보내기', insta: '인스타그램 보기' };
 let hudKey = null, promptLabel = null;
 function updateHUD() {
   let near = null, best = 99;
@@ -894,32 +1165,77 @@ function drawEnt(e) {
   ctx.fillStyle = 'rgba(0,0,0,.2)'; ctx.fillRect(x + 3, y + 13, 10, 3);
   ctx.drawImage(e.spr[e.dir][frameOf(e)], x, y - 4);
 }
+function drawSeaFX(t) {
+  const m = cur.grid, at = (x, y) => (m[y] && m[y][x]) || 'S';
+  const x0 = Math.max(0, Math.floor(cam.x / 16)), y0 = Math.max(0, Math.floor(cam.y / 16));
+  const x1 = Math.min(cur.w - 1, Math.floor((cam.x + cv.width) / 16)), y1 = Math.min(cur.h - 1, Math.floor((cam.y + cv.height) / 16));
+  for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
+    if (m[ty][tx] !== 'S') continue;
+    const X = tx * 16 - cam.x, Y = ty * 16 - cam.y, h = hsh(tx, ty);
+    const s1 = Math.floor(t * 5 + (h % 16)) % 16, s2 = 15 - Math.floor(t * 4 + ((h >> 5) % 16)) % 16;
+    R(ctx, '#8fe3d8', X + s1, Y + 3 + (h % 3), 3, 1);
+    R(ctx, '#2f9aa0', X + s2, Y + 10 + ((h >> 3) % 3), 4, 1);
+    const w = (wave(t, tx * 16 + 8) + 1) / 2;
+    if (at(tx, ty - 1) !== 'S') {
+      const p = Math.round(w * 5);
+      R(ctx, '#9be6dc', X, Y, 16, 7 - p);
+      R(ctx, '#f0fffb', X, Y + 6 - p, 16, 1);
+      for (let i = (tx * 5) % 4; i < 16; i += 4) R(ctx, '#f0fffb', X + i, Y + 7 - p, 2, 1);
+      if (w > 0.85) for (let i = 1; i < 16; i += 5) R(ctx, '#ffffff', X + i, Y - 1, 2, 1);
+      const p2 = Math.round(((wave(t - 1.2, tx * 16 + 8) + 1) / 2) * 4);
+      R(ctx, '#c8f4ee', X + ((tx * 3) % 5), Y + 13 - p2, 8, 1);
+    }
+    if (at(tx - 1, ty) !== 'S') R(ctx, '#e8fbf6', X + Math.round(w * 2), Y, 1, 16);
+    if (at(tx + 1, ty) !== 'S') R(ctx, '#e8fbf6', X + 15 - Math.round(w * 2), Y, 1, 16);
+  }
+}
 function render(t) {
   const vw = cv.width, vh = cv.height, mw = cur.w * 16, mh = cur.h * 16;
   cam.x = mw > vw ? Math.max(0, Math.min(mw - vw, Math.round(P.px + 8 - vw / 2))) : Math.round((mw - vw) / 2);
   cam.y = mh > vh ? Math.max(0, Math.min(mh - vh, Math.round(P.py + 8 - vh / 2))) : Math.round((mh - vh) / 2);
-  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, vw, vh);
+  ctx.fillStyle = cur.bg || '#000'; ctx.fillRect(0, 0, vw, vh);
   ctx.drawImage(cur.ground, -cam.x, -cam.y);
+  if (cur.sea) { try { drawSeaFX(t); } catch (err) { window.showErr('바다 효과 오류: ' + err.message); } }
 
   const list = [...cur.objects, ...[P, ...cur.npcs].map(e => ({ ent: e, base: e.py + 16 }))].sort((a, b) => a.base - b.base);
   for (const o of list) {
-    if (o.ent) drawEnt(o.ent);
-    else if (o.draw) o.draw(ctx, o.x - cam.x, o.y - cam.y, t);
-    else ctx.drawImage(o.img, o.x - cam.x, o.y - cam.y);
+    if (o.broken) continue;
+    try {
+      if (o.ent) drawEnt(o.ent);
+      else if (o.draw) o.draw(ctx, o.x - cam.x, o.y - cam.y, t);
+      else {
+        const x = o.x - cam.x, y = o.y - cam.y;
+        if (x > vw || y > vh || x + o.img.width < 0 || y + o.img.height < 0) continue;
+        ctx.drawImage(o.img, x, y);
+      }
+    } catch (err) {
+      o.broken = true;                                  // 고장 난 그림 하나만 건너뛰고 게임은 계속
+      ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+      window.showErr('그림 오류: ' + err.message);
+    }
+  }
+
+  if (cur.id === 'bamboo') {
+    const fx = 144 - cam.x, fy = 144 - cam.y;
+    const g = ctx.createRadialGradient(fx, fy, 40, fx, fy, 150);
+    g.addColorStop(0, 'rgba(10,18,8,0)'); g.addColorStop(1, 'rgba(10,18,8,0.6)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, vw, vh);
   }
 
   if (tint[0] < 254 || tint[1] < 254 || tint[2] < 254) {
     ctx.globalCompositeOperation = 'multiply';
-    ctx.fillStyle = `rgb(${tint[0] | 0},${tint[1] | 0},${tint[2] | 0})`;
+    ctx.fillStyle = 'rgb(' + (tint[0] | 0) + ',' + (tint[1] | 0) + ',' + (tint[2] | 0) + ')';
     ctx.fillRect(0, 0, vw, vh);
     ctx.globalCompositeOperation = 'lighter';
     for (const L of cur.lights) {
-      const x = L.x - cam.x, y = L.y - cam.y, a = 0.55 * tint[3];
-      const g = ctx.createRadialGradient(x, y, 0, x, y, L.r);
-      g.addColorStop(0, `rgba(255,190,110,${a})`); g.addColorStop(1, 'rgba(255,190,110,0)');
-      ctx.fillStyle = g; ctx.fillRect(x - L.r, y - L.r, L.r * 2, L.r * 2);
+      const fl = L.flicker ? 1 + Math.sin(t * 9) * 0.04 + Math.sin(t * 23) * 0.03 : 1;
+      const r = Math.max(1, L.r * fl), x = L.x - cam.x, y = L.y - cam.y;
+      const a = Math.max(0, Math.min(1, (L.a || 0.55) * tint[3])).toFixed(3), col = L.color || '255,190,110';
+      const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+      g.addColorStop(0, 'rgba(' + col + ',' + a + ')'); g.addColorStop(1, 'rgba(' + col + ',0)');
+      ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2);
     }
-    ctx.globalCompositeOperation = 'source-over';
+    ctxperation = 'source-over';
   }
 }
 function update(dt) {
@@ -929,6 +1245,7 @@ function update(dt) {
   const ph = phase();
   let tp = TINT[ph];
   if (cur.id === 'house') tp = ph === 'night' ? [215, 205, 230, 0.5] : ph === 'sunset' ? [255, 235, 215, 0.2] : [255, 255, 255, 0];
+  else if (cur.id === 'bamboo') tp = ph === 'night' ? [64, 66, 110, 1] : [245, 165, 125, 0.85];
   tint = tint.map((v, i) => v + (tp[i] - v) * Math.min(1, dt * 2));
   if (ph !== lastPhase) { lastPhase = ph; if (state === 'play') updateMusic(); updateClock(); }
   updateHUD();
@@ -936,7 +1253,8 @@ function update(dt) {
 let last = performance.now();
 function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
-  update(dt); render(now / 1000);
+  try { update(dt); render(now / 1000); }
+  catch (err) { ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; window.showErr('오류: ' + err.message); }
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
