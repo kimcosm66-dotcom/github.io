@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>ROOF TOUCH HOUSE ARCHIVE</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri/dist/galmuri.css">
+<style>
+:root{--ink:#303038;--line:#505868;--orange:#f05a1e;--paper:#f8f8f8;}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;background:#000;overflow:hidden;overscroll-behavior:none;}
+body{font-family:'Galmuri11','Galmuri9',monospace;color:var(--ink);user-select:none;-webkit-user-select:none;}
+#game{position:fixed;left:0;top:0;image-rendering:pixelated;image-rendering:crisp-edges;touch-action:none;}
+.box{background:var(--paper);border:4px solid var(--line);border-radius:8px;box-shadow:inset 0 0 0 3px #c8d8f0,0 4px 0 rgba(0,0,0,.3);}
+.btn{display:inline-block;font:inherit;font-size:13px;padding:8px 12px;background:var(--paper);border:3px solid var(--line);border-radius:6px;color:var(--ink);cursor:pointer;text-decoration:none;}
+.btn.primary{background:var(--orange);color:#fff;}
+
+/* 상단 HUD */
+#top{position:fixed;top:calc(10px + env(safe-area-inset-top));right:10px;display:flex;gap:6px;z-index:10;}
+#top .btn{font-size:12px;padding:6px 9px;}
+#tag{position:fixed;top:calc(58px + env(safe-area-inset-top));left:14px;z-index:10;color:#fff;text-shadow:2px 2px 0 #000;pointer-events:none;opacity:0;transform:translateY(-6px);transition:.25s;}
+#tag.show{opacity:1;transform:none;}
+#tag small{font-size:11px;letter-spacing:.25em;}
+#tag b{display:block;font-size:22px;margin-top:6px;font-weight:normal;}
+
+/* 보기 프롬프트 */
+#prompt{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:10;display:none;align-items:center;gap:8px;padding:8px 14px;font-size:14px;color:#fff;text-shadow:2px 2px 0 #000;cursor:pointer;}
+#prompt.show{display:flex;}
+#prompt kbd{font:inherit;font-size:12px;padding:2px 7px;border:2px solid #fff;border-radius:4px;text-shadow:none;background:rgba(0,0,0,.35);}
+body.touch #prompt{bottom:calc(170px + env(safe-area-inset-bottom));}
+
+/* 대화창 */
+#dialog{position:fixed;left:10px;right:10px;bottom:calc(20px + env(safe-area-inset-bottom));max-width:640px;margin:0 auto;padding:14px 18px 20px;min-height:86px;font-size:15px;line-height:1.75;z-index:15;display:none;cursor:pointer;}
+#dialog.show{display:block;}
+#dialog::after{content:'▼';position:absolute;right:14px;bottom:6px;font-size:10px;color:#e04030;animation:blink .7s steps(2) infinite;}
+body.touch #dialog{bottom:calc(170px + env(safe-area-inset-bottom));}
+@keyframes blink{50%{opacity:0}}
+
+/* 모바일 조작 */
+#pad{display:none;}
+body.touch #pad{display:block;}
+#joy{position:fixed;right:22px;bottom:calc(26px + env(safe-area-inset-bottom));width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.25);border:3px solid rgba(255,255,255,.7);touch-action:none;z-index:12;}
+#knob{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:rgba(248,248,248,.92);border:3px solid var(--line);pointer-events:none;}
+.ab{position:fixed;width:62px;height:62px;border-radius:50%;font:inherit;font-size:20px;color:var(--ink);background:rgba(248,248,248,.92);border:3px solid var(--line);touch-action:none;z-index:12;}
+#btnA{left:100px;bottom:calc(62px + env(safe-area-inset-bottom));}
+#btnB{left:22px;bottom:calc(24px + env(safe-area-inset-bottom));}
+
+/* 상세 모달 */
+#modal{position:fixed;inset:0;z-index:30;display:none;align-items:center;justify-content:center;padding:14px;background:rgba(0,0,0,.55);}
+#modal.show{display:flex;}
+#sheet{width:100%;max-width:560px;max-height:88vh;overflow:auto;padding:18px;user-select:text;-webkit-user-select:text;}
+.no{font-size:11px;letter-spacing:.2em;color:var(--orange);}
+#sheet h2{font-size:20px;font-weight:normal;margin:6px 0 12px;}
+.viewer{position:relative;aspect-ratio:4/3;background:#202838;border:3px solid var(--line);border-radius:4px;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.viewer img{max-width:100%;max-height:100%;object-fit:contain;}
+.viewer .nav{position:absolute;top:50%;transform:translateY(-50%);font:inherit;font-size:16px;padding:8px 10px;border:0;background:rgba(0,0,0,.45);color:#fff;cursor:pointer;}
+.viewer .prev{left:0}.viewer .next{right:0}
+.viewer .count{position:absolute;right:8px;bottom:6px;font-size:11px;color:#fff;text-shadow:1px 1px 0 #000;}
+.empty{color:#9ab0c8;font-size:13px;line-height:1.9;text-align:center;padding:12px;}
+.meta{font-size:12px;color:#888;margin-top:10px;}
+.desc{font-size:14px;line-height:1.85;margin-top:10px;white-space:pre-line;}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.list{display:grid;gap:8px;margin-top:6px;}
+.list button{text-align:left;}
+.list span{color:var(--orange);margin-right:8px;}
+#feed{margin-top:12px;}
+.hint{font-size:12px;color:#888;line-height:1.8;margin-top:12px;}
+
+/* 타이틀 · 전환 */
+#title{position:fixed;inset:0;z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:linear-gradient(#88c8f0 62%,#78c878 62%);cursor:pointer;transition:opacity .5s;}
+#title.hide{opacity:0;pointer-events:none;}
+#logo{width:192px;height:196px;image-rendering:pixelated;}
+#title .sub{font-size:14px;letter-spacing:.35em;color:#fff;text-shadow:2px 2px 0 #304050;}
+#title .start{font-size:15px;color:var(--ink);animation:blink 1s steps(2) infinite;}
+#fade{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .25s;z-index:20;}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="top">
+  <button class="btn" id="listBtn">목록</button>
+  <button class="btn" id="timeBtn">자동</button>
+  <button class="btn" id="sndBtn">♪ ON</button>
+</div>
+<div id="tag"></div>
+<div id="prompt"><span></span><kbd id="key">Space</kbd></div>
+<div id="dialog" class="box"><p id="dtext"></p></div>
+
+<div id="pad">
+  <div id="joy"><div id="knob"></div></div>
+  <button class="ab" id="btnA">A</button>
+  <button class="ab" id="btnB">B</button>
+</div>
+
+<div id="modal"><div id="sheet" class="box"></div></div>
+
+<div id="title">
+  <canvas id="logo" width="96" height="98"></canvas>
+  <div class="sub">ARCHIVE</div>
+  <div class="start">화면을 눌러 시작 · PRESS START</div>
+</div>
+<div id="fade"></div>
+
+<script>
+/* =========================================================
+   1. 내 정보 · 아카이브 (이 부분만 고치면 내용이 바뀝니다)
+   ========================================================= */
+const SITE = {
+  insta: 'https://www.instagram.com/roof_touch_house/',
+  instaId: '@roof_touch_house',
+  email: 'your@email.com'                    // ← 실제 메일 주소로 교체
+};
+
+// 인스타 게시물 주소를 넣으면 PC·게시판에서 피드로 보여 줍니다.
+// 예: 'https://www.instagram.com/p/게시물코드/'
+const INSTA_POSTS = [];
+
+// images: 'images/파일명.jpg' 형태로 여러 장 가능
+// post: 해당 프로젝트의 인스타 게시물 주소 (없으면 계정으로 연결)
+const ARCHIVE = {
+  hallasan: { no:'01', type:'함께 오르기', title:'한라산 같이 오르기', date:'', images:[], post:'',
+              desc:'사람들을 모아 함께 한라산을 오른 기록입니다.\n(설명을 입력하세요)' },
+  camp:     { no:'02', type:'캠프', title:'루프터치 캠프', date:'', images:[], post:'',
+              desc:'사람들과 함께 진행한 캠프 기록입니다.\n(설명을 입력하세요)' },
+  goods:    { no:'03', type:'굿즈', title:'굿즈 제작', date:'', images:[], post:'',
+              desc:'직접 만든 굿즈들의 기록입니다.\n(설명을 입력하세요)' },
+  work1:    { no:'04', type:'오프라인 프로젝트', title:'개인 프로젝트 1', date:'', images:[], post:'', desc:'(설명을 입력하세요)' },
+  work2:    { no:'05', type:'오프라인 프로젝트', title:'개인 프로젝트 2', date:'', images:[], post:'', desc:'(설명을 입력하세요)' },
+  work3:    { no:'06', type:'오프라인 프로젝트', title:'개인 프로젝트 3', date:'', images:[], post:'', desc:'(설명을 입력하세요)' },
+  work4:    { no:'07', type:'오프라인 프로젝트', title:'개인 프로젝트 4', date:'', images:[], post:'', desc:'(설명을 입력하세요)' },
+  books:    { no:'08', type:'기록', title:'기록집 · 자료', date:'', images:[], post:'', desc:'(설명을 입력하세요)' },
+  table:    { no:'09', type:'소품', title:'소품 · 샘플', date:'', images:[], post:'', desc:'(설명을 입력하세요)' }
+};
+
+/* =========================================================
+   2. 기본 도구
+   ========================================================= */
+const $ = id => document.getElementById(id);
+const cv = $('game'), ctx = cv.getContext('2d');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const R = (g, c, x, y, w = 1, h = 1) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
+const hsh = (x, y) => ((x * 73856093) ^ (y * 19349663)) >>> 0;
+function makeCanvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; return [c, g]; }
+if (matchMedia('(pointer:coarse)').matches || 'ontouchstart' in window) document.body.classList.add('touch');
+const isTouch = document.body.classList.contains('touch');
+$('key').textContent = isTouch ? 'A' : 'Space';
+
+/* =========================================================
+   3. 캐릭터 스프라이트 (직접 그린 16x16 픽셀)
+   ========================================================= */
+const HEAD = {
+  down: [".....KKKKKK.....","....KOOOOOOK....","...KOOOWWOOOK...","...KOOOOOOOOK...","..KKKKKKKKKKKK..",
+         "...KHHSSSSHHK...","...KHSKSSKSHK...","...KSSSSSSSSK...","....KSSSSSSK....","...KTTTWWTTTK...",
+         "..KSTTTWWTTTSK..","..KSKTTTTTTKSK..","...KKNNNNNNKK..."],
+  up:   [".....KKKKKK.....","....KOOOOOOK....","...KOOOOOOOOK...","...KOOOOOOOOK...","..KKKKKKKKKKKK..",
+         "...KHHHHHHHHK...","...KHHHHHHHHK...","...KHHHHHHHHK...","....KHHHHHHK....","...KTTTTTTTTK...",
+         "..KSTTTTTTTTSK..","..KSKTTTTTTKSK..","...KKNNNNNNKK..."],
+  side: [".....KKKKKK.....","....KOOOOOOK....","...KOOOOOWWOK...","...KOOOOOOOOK...","...KKKKKKKKKKKK.",
+         "...KHHHHSSSK....","...KHHHSSKSK....","...KHHSSSSSK....","....KHSSSSK.....","....KTTTTTK.....",
+         "....KTTSSTK.....","....KTTSSTK.....","....KNNNNNK....."]
+};
+const LEGS = {
+  down: { stand:["....KNNKKNNK....","....KNNKKNNK....","....KKK..KKK...."],
+          a:    ["....KNNKKNNK....","....KNNK.KKK....","....KKK........."],
+          b:    ["....KNNKKNNK....","....KKK.KNNK....",".........KKK...."] },
+  side: { stand:["....KNNNNK......","....KNNNNK......","....KKKKKK......"],
+          a:    ["...KNNK.KNK.....","..KNNK...KNK....","..KKK.....KKK..."] }
+};
+LEGS.side.b = LEGS.side.stand;
+
+function buildChar(pal) {
+  const out = {};
+  for (const dir of ['down', 'up', 'left', 'right']) {
+    const base = (dir === 'left' || dir === 'right') ? 'side' : dir;
+    const legs = base === 'side' ? LEGS.side : LEGS.down;
+    out[dir] = ['stand', 'a', 'b'].map(f => {
+      const [c, g] = makeCanvas(16, 16);
+      HEAD[base].concat(legs[f]).forEach((row, y) => [...row].forEach((ch, x) => {
+        if (ch !== '.') R(g, pal[ch], dir === 'left' ? 15 - x : x, y);
+      }));
+      return c;
+    });
+  }
+  return out;
+}
+const BASE_PAL = { K:'#282830', W:'#f8f8f8', S:'#f8c8a0', N:'#384068' };
+const SPR = {
+  player: buildChar({ ...BASE_PAL, O:'#f05a1e', H:'#503828', T:'#3070d0' }),
+  npc1:   buildChar({ ...BASE_PAL, O:'#48a048', H:'#303030', T:'#e8b830' }),
+  npc2:   buildChar({ ...BASE_PAL, O:'#8858c8', H:'#a06030', T:'#e86878' })
+};
+
+/* =========================================================
+   4. 오브젝트 스프라이트
+   ========================================================= */
+const GLYPH = {
+  R:'####.|#...#|####.|#..#.|#...#', O:'.###.|#...#|#...#|#...#|.###.', F:'#####|#....|####.|#....|#....',
+  T:'#####|..#..|..#..|..#..|..#..', U:'#...#|#...#|#...#|#...#|.###.', C:'.####|#....|#....|#....|.####',
+  H:'#...#|#...#|#####|#...#|#...#', S:'.####|#....|.###.|....#|####.', E:'#####|#....|####.|#....|#####',
+  G:'.####|#....|#..##|#...#|.###.', D:'####.|#...#|#...#|#...#|####.'
+};
+function drawText(g, str, cx, y, s = 2, color = '#202020') {
+  const total = str.length * 6 * s - s;
+  let x = Math.round(cx - total / 2);
+  for (const ch of str) {
+    GLYPH[ch].split('|').forEach((row, j) => [...row].forEach((p, i) => { if (p === '#') R(g, color, x + i * s, y + j * s, s, s); }));
+    x += 6 * s;
+  }
+}
+
+// ROOF TOUCH HOUSE 로고 → 픽셀 건물 (96x98)
+function makeHouse() {
+  const [c, g] = makeCanvas(96, 98);
+  const OR = '#f05a1e', ORD = '#b83a10', K = '#202020', WH = '#ffffff';
+  for (let y = 2; y <= 37; y++) {
+    const half = Math.round((y - 2) * 47 / 35), x0 = 48 - half, x1 = 48 + half;
+    R(g, ORD, x0 - 1, y, x1 - x0 + 2, 1);
+    R(g, OR, x0, y, x1 - x0, 1);
+    if (x1 - x0 > 8) R(g, WH, x0 + 4, y, x1 - x0 - 8, 1);
+  }
+  R(g, K, 0, 36, 14, 3); R(g, K, 82, 36, 14, 3);          // 지붕 아래 검은 턱
+  R(g, WH, 14, 38, 68, 57);                                // 벽
+  R(g, '#e8e8e8', 76, 38, 5, 57);                          // 벽 그늘
+  R(g, K, 11, 36, 3, 62); R(g, K, 82, 36, 3, 62); R(g, K, 11, 95, 74, 3);
+  drawText(g, 'ROOF', 48, 26); drawText(g, 'TOUCH', 48, 40); drawText(g, 'HOUSE', 48, 54);
+  R(g, K, 35, 68, 26, 27); R(g, '#8a5a30', 37, 70, 22, 25);  // 문
+  R(g, '#9ad0f0', 39, 72, 8, 7); R(g, '#9ad0f0', 49, 72, 8, 7);
+  R(g, K, 47, 70, 2, 25);
+  R(g, '#f8d048', 44, 84, 2, 2); R(g, '#f8d048', 50, 84, 2, 2);
+  return c;
+}
+function makeTree() {
+  const [c, g] = makeCanvas(16, 24);
+  R(g, '#7a4a28', 6, 19, 4, 5); R(g, '#5a3418', 6, 22, 4, 2);
+  const tiers = [[0, 6, 2, 8], [4, 12, 4, 12], [9, 19, 6, 16]];
+  for (let y = 0; y < 20; y++) {
+    let w = 0;
+    for (const [a, b, w0, w1] of tiers) if (y >= a && y <= b) w = Math.max(w, Math.round((w0 + (w1 - w0) * (y - a) / (b - a)) / 2) * 2);
+    const x0 = 8 - w / 2;
+    R(g, '#1f5a38', x0, y, w, 1);
+    if (w > 2) { R(g, '#2f8a4f', x0 + 1, y, w - 2, 1); R(g, '#4fae62', x0 + 1, y, Math.max(1, (w - 2) / 3 | 0), 1); }
+  }
+  return c;
+}
+function makeTent(col, dark) {
+  const [c, g] = makeCanvas(32, 28);
+  for (let y = 0; y < 26; y++) {
+    const half = 1 + Math.round(y * 14 / 25);
+    R(g, '#202020', 16 - half - 1, y, half * 2 + 2, 1);
+    R(g, col, 16 - half, y, half * 2, 1);
+    R(g, dark, 16, y, half, 1);
+  }
+  for (let y = 12; y < 26; y++) { const h = Math.round((y - 12) * 5 / 13); R(g, '#3a2a20', 16 - h, y, h * 2, 1); }
+  R(g, '#6a4020', 0, 26, 2, 2); R(g, '#6a4020', 30, 26, 2, 2);
+  return c;
+}
+function makeStall() {
+  const [c, g] = makeCanvas(64, 44);
+  R(g, '#6a4020', 3, 10, 3, 16); R(g, '#6a4020', 58, 10, 3, 16);
+  for (let i = 0; i < 8; i++) { R(g, i % 2 ? '#ffffff' : '#f05a1e', i * 8, 1, 8, 11); R(g, i % 2 ? '#ffffff' : '#f05a1e', i * 8 + 2, 12, 4, 2); }
+  R(g, '#202020', 0, 0, 64, 1);
+  R(g, '#58a0e0', 8, 18, 8, 7); R(g, '#f8d048', 20, 16, 6, 9); R(g, '#e85878', 30, 19, 10, 6); R(g, '#68c070', 46, 17, 7, 8);
+  R(g, '#202020', 0, 24, 64, 20); R(g, '#c88848', 1, 25, 62, 18); R(g, '#a86830', 1, 25, 62, 3);
+  R(g, '#fff8e0', 15, 30, 34, 9); drawText(g, 'GOODS', 32, 32, 1);
+  return c;
+}
+function makeSign() {
+  const [c, g] = makeCanvas(16, 16);
+  R(g, '#5a3418', 7, 9, 2, 7); R(g, '#202020', 1, 1, 14, 9); R(g, '#c89050', 2, 2, 12, 7);
+  R(g, '#e0b070', 2, 2, 12, 2); R(g, '#8a5a30', 4, 5, 8, 1); R(g, '#8a5a30', 4, 7, 6, 1);
+  return c;
+}
+function makeInstaBoard() {
+  const [c, g] = makeCanvas(16, 16);
+  R(g, '#5a3418', 7, 9, 2, 7); R(g, '#202020', 1, 1, 14, 9); R(g, '#f8f8f8', 2, 2, 12, 7);
+  R(g, '#e04888', 5, 2, 6, 6); R(g, '#f8f8f8', 6, 3, 4, 4); R(g, '#e04888', 7, 4, 2, 2); R(g, '#f8a030', 5, 2, 2, 2);
+  return c;
+}
+function makeMailbox() {
+  const [c, g] = makeCanvas(16, 20);
+  R(g, '#5a3418', 7, 10, 2, 10); R(g, '#202020', 2, 2, 12, 9); R(g, '#e03838', 3, 3, 10, 7);
+  R(g, '#f87070', 3, 3, 10, 2); R(g, '#202020', 5, 6, 6, 1); R(g, '#f8d048', 13, 1, 2, 4);
+  return c;
+}
+function makeLamp() {
+  const [c, g] = makeCanvas(16, 32);
+  R(g, '#384050', 7, 8, 2, 24); R(g, '#384050', 5, 29, 6, 3);
+  R(g, '#384050', 3, 0, 10, 2); R(g, '#202020', 4, 2, 8, 7); R(g, '#fff0b0', 5, 3, 6, 5);
+  return c;
+}
+function makePC() {
+  const [c, g] = makeCanvas(16, 24);
+  R(g, '#202020', 0, 12, 16, 12); R(g, '#a07040', 1, 13, 14, 10);
+  R(g, '#202020', 2, 0, 12, 11); R(g, '#58b8e8', 3, 1, 10, 8);
+  R(g, '#e04888', 5, 3, 4, 4); R(g, '#58b8e8', 6, 4, 2, 2); R(g, '#606060', 6, 11, 4, 1);
+  return c;
+}
+function makeShelf() {
+  const [c, g] = makeCanvas(32, 32);
+  R(g, '#202020', 0, 0, 32, 32); R(g, '#a06838', 1, 1, 30, 30);
+  const cols = ['#f05a1e', '#58a0e0', '#f8d048', '#68c070', '#e85878', '#8858c8'];
+  [2, 12, 22].forEach((y, r) => {
+    for (let i = 0; i < 7; i++) R(g, cols[(i + r) % 6], 3 + i * 4, y + (i % 3 === 0 ? 1 : 0), 3, 8 - (i % 3 === 0 ? 1 : 0));
+    R(g, '#6a4020', 1, y + 8, 30, 2);
+  });
+  return c;
+}
+function makeTable() {
+  const [c, g] = makeCanvas(32, 22);
+  R(g, '#202020', 0, 4, 32, 12); R(g, '#c88848', 1, 5, 30, 10); R(g, '#e0a868', 1, 5, 30, 2);
+  R(g, '#6a4020', 2, 15, 3, 7); R(g, '#6a4020', 27, 15, 3, 7);
+  R(g, '#f05a1e', 5, 0, 6, 7); R(g, '#58a0e0', 14, 1, 7, 6); R(g, '#f8d048', 24, 2, 4, 5);
+  return c;
+}
+function makePlant() {
+  const [c, g] = makeCanvas(16, 20);
+  R(g, '#1f5a38', 2, 2, 12, 11); R(g, '#2f8a4f', 3, 3, 10, 9); R(g, '#4fae62', 4, 4, 4, 3);
+  R(g, '#202020', 4, 12, 8, 8); R(g, '#c86838', 5, 13, 6, 6);
+  return c;
+}
+const IMG = {
+  house: makeHouse(), tree: makeTree(), tentA: makeTent('#f08040', '#d06028'), tentB: makeTent('#48a8a0', '#2f8880'),
+  stall: makeStall(), sign: makeSign(), insta: makeInstaBoard(), mailbox: makeMailbox(), lamp: makeLamp(),
+  pc: makePC(), shelf: makeShelf(), table: makeTable(), plant: makePlant()
+};
+$('logo').getContext('2d').drawImage(IMG.house, 0, 0);
+
+// 액자 썸네일용 이미지 미리 불러오기
+const THUMB = {};
+for (const [k, a] of Object.entries(ARCHIVE)) if (a.images[0]) { const im = new Image(); im.src = a.images[0]; THUMB[k] = im; }
+
+function drawFire(g, x, y, t) {
+  const f = (t * 8 | 0) % 2;
+  R(g, '#808080', x + 1, y + 13, 3, 2); R(g, '#808080', x + 12, y + 13, 3, 2);
+  R(g, '#6a4020', x + 2, y + 11, 12, 3); R(g, '#8a5a30', x + 4, y + 9, 8, 3);
+  R(g, '#f05a1e', x + 5, y + 4 + f, 6, 6 - f); R(g, '#f8b030', x + 6, y + 6, 4, 4);
+  R(g, '#fff0a0', x + 7, y + 8, 2, 2); R(g, '#f05a1e', x + 7, y + 2 + f * 2, 2, 2);
+}
+function frameObj(tx, key, color) {
+  return { x: tx * 16, y: 16, base: 32, draw(g, x, y) {
+    R(g, '#202020', x + 1, y + 1, 14, 12); R(g, '#a06838', x + 2, y + 2, 12, 10);
+    const im = THUMB[key];
+    if (im && im.complete && im.naturalWidth) g.drawImage(im, x + 3, y + 3, 10, 8);
+    else { R(g, color, x + 3, y + 3, 10, 8); R(g, '#ffffff', x + 5, y + 7, 3, 3); R(g, '#ffffff', x + 8, y + 5, 3, 5); }
+  }};
+}
+
+/* =========================================================
+   5. 맵
+   ========================================================= */
+const grid = (w, h, c) => Array.from({ length: h }, () => Array(w).fill(c));
+const fill = (m, x, y, w, h, c) => { for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (m[j] && m[j][i] !== undefined) m[j][i] = c; };
+const WALK = new Set(['.', 'p', 'f', 'D', 'o', 'r', 'E']);
+
+function grassTile(g, X, Y, tx, ty) {
+  R(g, '#78c878', X, Y, 16, 16);
+  const h = hsh(tx, ty);
+  for (let i = 0; i < 3; i++) {
+    const ax = X + (h >> (i * 5)) % 13 + 1, ay = Y + (h >> (i * 5 + 3)) % 12 + 2;
+    R(g, '#58a860', ax, ay, 1, 2); R(g, '#58a860', ax + 2, ay + 1); R(g, '#a0e0a0', ax + 1, ay - 1);
+  }
+}
+function buildGround(map) {
+  const { w, h, grid: m } = map;
+  const [c, g] = makeCanvas(w * 16, h * 16);
+  const at = (x, y) => (m[y] && m[y][x]) || '';
+  for (let ty = 0; ty < h; ty++) for (let tx = 0; tx < w; tx++) {
+    const ch = m[ty][tx], X = tx * 16, Y = ty * 16, hh = hsh(tx, ty);
+    if (map.id === 'town') {
+      if (ch === 'M') R(g, '#a8d8f8', X, Y, 16, 16);
+      else if (ch === 'p' || ch === 'D') {
+        R(g, '#e8d098', X, Y, 16, 16); R(g, '#d8b878', X + hh % 13, Y + (hh >> 4) % 13, 2, 1);
+        const isP = (x, y) => ['p', 'D'].includes(at(x, y));
+        if (!isP(tx, ty - 1)) R(g, '#c8a868', X, Y, 16, 2);
+        if (!isP(tx, ty + 1)) R(g, '#c8a868', X, Y + 14, 16, 2);
+        if (!isP(tx - 1, ty)) R(g, '#c8a868', X, Y, 2, 16);
+        if (!isP(tx + 1, ty)) R(g, '#c8a868', X + 14, Y, 2, 16);
+      } else if (ch === 'w') {
+        R(g, '#58a8e8', X, Y, 16, 16);
+        R(g, '#90c8f8', X + 2 + hh % 6, Y + 4, 4, 1); R(g, '#90c8f8', X + 8 - hh % 4, Y + 11, 5, 1);
+        if (at(tx, ty - 1) !== 'w') { R(g, '#f0e8c0', X, Y, 16, 2); R(g, '#3c88c8', X, Y + 2, 16, 1); }
+        if (at(tx, ty + 1) !== 'w') R(g, '#f0e8c0', X, Y + 14, 16, 2);
+        if (at(tx - 1, ty) !== 'w') R(g, '#f0e8c0', X, Y, 2, 16);
+        if (at(tx + 1, ty) !== 'w') R(g, '#f0e8c0', X + 14, Y, 2, 16);
+      } else {
+        grassTile(g, X, Y, tx, ty);
+        if (ch === 'f') [[3, 3], [10, 9]].forEach(([fx, fy]) => {
+          R(g, '#f07848', X + fx, Y + fy + 1, 3, 1); R(g, '#f07848', X + fx + 1, Y + fy, 1, 3); R(g, '#f8e070', X + fx + 1, Y + fy + 1);
+        });
+      }
+    } else {
+      if (ch === 'W') {
+        R(g, '#f4e4c4', X, Y, 16, 16);
+        for (let i = 0; i < 16; i += 4) R(g, '#ead4a8', X + i, Y, 1, 16);
+        if (ty === 0) R(g, '#c8b088', X, Y, 16, 2);
+        if (ty === 1) { R(g, '#8a5a30', X, Y + 12, 16, 4); R(g, '#6a4020', X, Y + 12, 16, 1); }
+      } else if (ch === 'r') {
+        R(g, '#f05a1e', X, Y, 16, 16); R(g, '#f88a50', X + 6, Y + 6, 4, 4);
+        if (at(tx, ty - 1) !== 'r') R(g, '#fff0d8', X, Y + 1, 16, 2);
+        if (at(tx, ty + 1) !== 'r') R(g, '#fff0d8', X, Y + 13, 16, 2);
+        if (at(tx - 1, ty) !== 'r') R(g, '#fff0d8', X + 1, Y, 2, 16);
+        if (at(tx + 1, ty) !== 'r') R(g, '#fff0d8', X + 13, Y, 2, 16);
+      } else {
+        R(g, '#d8a468', X, Y, 16, 16); R(g, '#c08850', X, Y + 7, 16, 1); R(g, '#c08850', X, Y + 15, 16, 1);
+        R(g, '#c08850', X + (tx % 2 ? 4 : 11), Y, 1, 7); R(g, '#c08850', X + (tx % 2 ? 12 : 3), Y + 8, 1, 7);
+        if (ch === 'E') { R(g, '#58a070', X + 1, Y + 2, 14, 12); R(g, '#88c898', X + 3, Y + 5, 10, 1); R(g, '#88c898', X + 3, Y + 9, 10, 1); }
+      }
+    }
+  }
+  if (map.id === 'town') {
+    // 한라산 (넓은 방패형 산 + 백록담 분화구)
+    const cx = w * 8, top = 12, bot = 80;
+    for (let y = top; y < bot; y++) {
+      const t = (y - top) / (bot - top), half = Math.round(46 + 200 * Math.pow(t, 1.7));
+      R(g, '#3d7a55', cx - half, y, half * 2, 1); R(g, '#4f9466', cx - half, y, Math.round(half * 1.2), 1);
+      if (y < top + 14) { R(g, '#8f9c8c', cx - half, y, half * 2, 1); R(g, '#a8b4a4', cx - half, y, Math.round(half * 0.9), 1); }
+    }
+    R(g, '#6f7c6c', cx - 24, top, 48, 2); R(g, '#e8eef0', cx - 40, top + 3, 24, 1); R(g, '#e8eef0', cx + 12, top + 4, 20, 1);
+    [[40, 18], [w * 16 - 90, 26]].forEach(([x, y]) => { R(g, '#ffffff', x, y + 4, 28, 6); R(g, '#ffffff', x + 6, y, 14, 6); R(g, '#e0eef8', x, y + 9, 28, 1); });
+  }
+  return c;
+}
+
+function npc(x, y, spr, lines) {
+  return { x, y, px: x * 16, py: y * 16, nx: x, ny: y, dir: 'down', moving: false, t: 0, flip: false,
+           home: { x, y }, timer: 1 + Math.random() * 2, spr, lines, talking: false };
+}
+
+function buildTown() {
+  const W = 32, H = 26, m = grid(W, H, '.');
+  fill(m, 0, 0, W, 5, 'M');                         // 하늘 + 한라산
+  fill(m, 0, 5, W, 1, 'T');                         // 산 아래 나무줄
+  fill(m, 0, 5, 2, H - 5, 'T'); fill(m, W - 2, 5, 2, H - 5, 'T'); fill(m, 0, H - 2, W, 2, 'T');
+  fill(m, 9, 5, 2, 10, 'p');                        // 등산로
+  fill(m, 2, 14, W - 4, 2, 'p');                    // 큰길
+  fill(m, 15, 13, 2, 1, 'p'); fill(m, 15, 16, 2, 8, 'p');
+  fill(m, 3, 16, 4, 2, 'f'); fill(m, 21, 17, 3, 1, 'f'); fill(m, 12, 6, 3, 1, 'f'); fill(m, 20, 7, 2, 2, 'f');
+  fill(m, 3, 19, 6, 4, 'w');                        // 연못
+  fill(m, 24, 19, 4, 3, 'T'); fill(m, 27, 6, 3, 2, 'T');
+  fill(m, 13, 9, 6, 4, 'X'); m[12][15] = 'D'; m[12][16] = 'D';   // 집 + 문
+  fill(m, 3, 9, 2, 2, 'X'); fill(m, 6, 9, 2, 2, 'X'); m[12][5] = 'X'; // 텐트 · 모닥불
+  fill(m, 23, 10, 4, 2, 'X');                       // 굿즈 가판대
+  [[14, 13], [19, 12], [21, 13], [11, 6], [12, 16], [19, 16]].forEach(([x, y]) => m[y][x] = 'X');
+
+  const map = { id: 'town', w: W, h: H, grid: m };
+  map.ground = buildGround(map);
+  const o = [];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (m[y][x] === 'T') o.push({ img: IMG.tree, x: x * 16, y: y * 16 - 8, base: y * 16 + 16 });
+  o.push({ img: IMG.house, x: 13 * 16, y: 13 * 16 - 98, base: 13 * 16 });
+  o.push({ img: IMG.tentA, x: 3 * 16, y: 11 * 16 - 28, base: 11 * 16 });
+  o.push({ img: IMG.tentB, x: 6 * 16, y: 11 * 16 - 28, base: 11 * 16 });
+  o.push({ draw: drawFire, x: 5 * 16, y: 12 * 16, base: 13 * 16 });
+  o.push({ img: IMG.stall, x: 23 * 16, y: 12 * 16 - 44, base: 12 * 16 });
+  o.push({ img: IMG.sign, x: 14 * 16, y: 13 * 16, base: 14 * 16 });
+  o.push({ img: IMG.sign, x: 11 * 16, y: 6 * 16, base: 7 * 16 });
+  o.push({ img: IMG.mailbox, x: 19 * 16, y: 13 * 16 - 20, base: 13 * 16 });
+  o.push({ img: IMG.insta, x: 21 * 16, y: 13 * 16, base: 14 * 16 });
+  o.push({ img: IMG.lamp, x: 12 * 16, y: 17 * 16 - 32, base: 17 * 16 });
+  o.push({ img: IMG.lamp, x: 19 * 16, y: 17 * 16 - 32, base: 17 * 16 });
+  map.objects = o;
+  map.acts = [
+    { x: 9, y: 4, w: 2, h: 1, kind: 'archive', key: 'hallasan' },
+    { x: 11, y: 6, w: 1, h: 1, kind: 'dialog', lines: ['↑ 한라산 등산로', '함께 올랐던 날의 기록이 이 길 끝에 있어요.'] },
+    { x: 3, y: 9, w: 2, h: 2, kind: 'archive', key: 'camp', up: 1 },
+    { x: 6, y: 9, w: 2, h: 2, kind: 'archive', key: 'camp', up: 1 },
+    { x: 5, y: 12, w: 1, h: 1, kind: 'archive', key: 'camp' },
+    { x: 23, y: 10, w: 4, h: 2, kind: 'archive', key: 'goods', up: 1 },
+    { x: 14, y: 13, w: 1, h: 1, kind: 'dialog', lines: ['ROOF TOUCH HOUSE', '루프터치하우스의 작업들을 모아 둔 아카이브 마을입니다.', '집 안에 들어가 작업물을 살펴보세요!'] },
+    { x: 19, y: 12, w: 1, h: 1, kind: 'contact', up: 1 },
+    { x: 21, y: 13, w: 1, h: 1, kind: 'insta' }
+  ];
+  map.npcs = [
+    npc(22, 18, SPR.npc1, ['안녕! 여긴 루프터치하우스 마을이야.', '집 안에 들어가면 지금까지의 작업들이 걸려 있어!']),
+    npc(7, 13, SPR.npc2, ['캠프장 텐트를 눌러 봐. 그때 사진이 있을 거야.', '이동할 때 Shift(모바일은 B)를 누르고 있으면 달릴 수 있어!'])
+  ];
+  map.lights = [
+    { x: 12 * 16 + 8, y: 16 * 16 + 4, r: 44 }, { x: 19 * 16 + 8, y: 16 * 16 + 4, r: 44 },
+    { x: 5 * 16 + 8, y: 12 * 16 + 8, r: 56 }, { x: 16 * 16, y: 12 * 16 + 10, r: 38 }, { x: 25 * 16, y: 10 * 16, r: 40 }
+  ];
+  return map;
+}
+
+function buildHouse() {
+  const W = 12, H = 10, m = grid(W, H, 'o');
+  fill(m, 0, 0, W, 2, 'W');
+  fill(m, 3, 5, 6, 3, 'r');
+  m[9][5] = 'E'; m[9][6] = 'E';
+  fill(m, 5, 3, 2, 1, 'X'); m[2][1] = 'X'; m[9][0] = 'X'; m[9][11] = 'X';
+  const map = { id: 'house', w: W, h: H, grid: m };
+  map.ground = buildGround(map);
+  map.objects = [
+    frameObj(2, 'work1', '#e85878'), frameObj(4, 'work2', '#58a0e0'), frameObj(7, 'work3', '#68c070'), frameObj(9, 'work4', '#f8b030'),
+    { img: IMG.shelf, x: 10 * 16, y: 0, base: 32 },
+    { img: IMG.table, x: 5 * 16, y: 4 * 16 - 22, base: 64 },
+    { img: IMG.pc, x: 16, y: 3 * 16 - 24, base: 48 },
+    { img: IMG.plant, x: 0, y: 10 * 16 - 20, base: 160 },
+    { img: IMG.plant, x: 11 * 16, y: 10 * 16 - 20, base: 160 }
+  ];
+  map.acts = [
+    { x: 2, y: 1, w: 1, h: 1, kind: 'archive', key: 'work1' }, { x: 4, y: 1, w: 1, h: 1, kind: 'archive', key: 'work2' },
+    { x: 7, y: 1, w: 1, h: 1, kind: 'archive', key: 'work3' }, { x: 9, y: 1, w: 1, h: 1, kind: 'archive', key: 'work4' },
+    { x: 10, y: 1, w: 2, h: 1, kind: 'archive', key: 'books', up: 1 },
+    { x: 5, y: 3, w: 2, h: 1, kind: 'archive', key: 'table' },
+    { x: 1, y: 2, w: 1, h: 1, kind: 'insta', up: 1 }
+  ];
+  map.npcs = [];
+  map.lights = [];
+  return map;
+}
+const MAPS = { town: buildTown(), house: buildHouse() };
+let cur = MAPS.town;
+
+/* =========================================================
+   6. 플레이어 · 이동
+   ========================================================= */
+const P = { x: 16, y: 15, px: 256, py: 240, nx: 16, ny: 15, dir: 'up', moving: false, t: 0, flip: false, idle: true, turnT: 0, spr: SPR.player };
+const DIRV = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+let state = 'title', fading = false, modalOpen = false, bHeld = false, joyDir = null, houseVisited = false;
+const keys = {};
+
+function canWalk(map, x, y, self) {
+  if (x < 0 || y < 0 || x >= map.w || y >= map.h || !WALK.has(map.grid[y][x])) return false;
+  return ![P, ...map.npcs].some(e => e !== self && ((e.x === x && e.y === y) || (e.moving && e.nx === x && e.ny === y)));
+}
+function tryMove(e, dir, map) {
+  e.dir = dir;
+  const [dx, dy] = DIRV[dir], nx = e.x + dx, ny = e.y + dy;
+  if (!canWalk(map, nx, ny, e)) return false;
+  Object.assign(e, { moving: true, nx, ny, t: 0, flip: !e.flip });
+  return true;
+}
+function advanceMove(e, dt, speed) {
+  e.t += dt * speed;
+  if (e.t >= 1) { Object.assign(e, { x: e.nx, y: e.ny, moving: false, t: 0, px: e.nx * 16, py: e.ny * 16 }); return true; }
+  e.px = (e.x + (e.nx - e.x) * e.t) * 16; e.py = (e.y + (e.ny - e.y) * e.t) * 16;
+  return false;
+}
+const locked = () => state !== 'play' || dlg.active || modalOpen || fading;
+function inputDir() {
+  if (joyDir) return joyDir;
+  if (keys.arrowup || keys.w) return 'up';
+  if (keys.arrowdown || keys.s) return 'down';
+  if (keys.arrowleft || keys.a) return 'left';
+  if (keys.arrowright || keys.d) return 'right';
+  return null;
+}
+function updatePlayer(dt) {
+  if (P.moving) {
+    if (!advanceMove(P, dt, (keys.shift || bHeld) ? 8 : 4.5)) return;
+    if (checkTrigger()) return;
+  }
+  if (locked()) return;
+  const d = inputDir();
+  if (!d) { P.idle = true; return; }
+  if (P.idle && d !== P.dir) { P.dir = d; P.turnT = 0.1; P.idle = false; return; }
+  P.idle = false;
+  if (P.turnT > 0) { P.turnT -= dt; return; }
+  tryMove(P, d, cur);
+}
+function checkTrigger() {
+  const c = cur.grid[P.y][P.x];
+  if (cur.id === 'town' && c === 'D') { goMap('house', P.x - 10, 8, 'up'); return true; }
+  if (cur.id === 'house' && c === 'E') { goMap('town', P.x + 10, 13, 'down'); return true; }
+  return false;
+}
+function goMap(id, x, y, dir) {
+  fading = true; sfx('door'); $('fade').style.opacity = 1;
+  setTimeout(() => {
+    cur = MAPS[id];
+    Object.assign(P, { x, y, nx: x, ny: y, px: x * 16, py: y * 16, dir, moving: false, idle: true });
+    updateMusic();
+    $('fade').style.opacity = 0;
+    setTimeout(() => {
+      fading = false;
+      if (id === 'house' && !houseVisited) { houseVisited = true; say(['루프터치하우스에 오신 걸 환영해요!', '벽에 걸린 작업물이나 물건 앞에서 A를 누르거나, 직접 눌러 보세요.']); }
+    }, 260);
+  }, 260);
+}
+function updateNPCs(dt) {
+  for (const n of cur.npcs) {
+    if (n.moving) { advanceMove(n, dt, 3); continue; }
+    if (n.talking) continue;
+    n.timer -= dt;
+    if (n.timer > 0) continue;
+    n.timer = 1.5 + Math.random() * 2.5;
+    const d = ['up', 'down', 'left', 'right'][Math.random() * 4 | 0], [dx, dy] = DIRV[d];
+    if (Math.abs(n.x + dx - n.home.x) <= 3 && Math.abs(n.y + dy - n.home.y) <= 2) tryMove(n, d, cur); else n.dir = d;
+  }
+}
+
+/* =========================================================
+   7. 대화 · 상호작용
+   ========================================================= */
+const dlg = { active: false, lines: [], i: 0, shown: 0, full: '', done: null };
+function say(lines, done) {
+  Object.assign(dlg, { active: true, lines, i: 0, done });
+  dlg.full = lines[0]; dlg.shown = 0;
+  $('dialog').classList.add('show');
+}
+function advance() {
+  if (dlg.shown < dlg.full.length) { dlg.shown = dlg.full.length; return; }
+  if (++dlg.i >= dlg.lines.length) {
+    dlg.active = false; $('dialog').classList.remove('show');
+    const d = dlg.done; dlg.done = null; d && d();
+  } else { dlg.full = dlg.lines[dlg.i]; dlg.shown = 0; }
+}
+function facing() {
+  const [dx, dy] = DIRV[P.dir], fx = P.x + dx, fy = P.y + dy;
+  const n = cur.npcs.find(n => n.x === fx && n.y === fy);
+  if (n) return { kind: 'npc', npc: n };
+  return cur.acts.find(a => fx >= a.x && fx < a.x + a.w && fy >= a.y && fy < a.y + a.h) || null;
+}
+function interact(a) {
+  sfx('a');
+  if (a.kind === 'npc') {
+    const n = a.npc, dx = P.x - n.x, dy = P.y - n.y;
+    n.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+    n.talking = true; say(n.lines, () => n.talking = false);
+  } else if (a.kind === 'archive') openArchive(a.key);
+  else if (a.kind === 'dialog') say(a.lines);
+  else if (a.kind === 'contact') openContact();
+  else if (a.kind === 'insta') openInsta();
+}
+function pressA() {
+  if (state === 'title') return start();
+  if (modalOpen) return;
+  if (dlg.active) { sfx('a'); return advance(); }
+  if (fading || P.moving) return;
+  const f = facing(); if (f) interact(f);
+}
+function pressB() { if (modalOpen) closeModal(); else if (dlg.active) advance(); }
+
+/* =========================================================
+   8. 모달 (상세 · 인스타 · 컨택트 · 목록)
+   ========================================================= */
+let modalNav = null;
+const sheet = $('sheet');
+function showModal() { modalOpen = true; $('modal').classList.add('show'); sheet.scrollTop = 0; bindClose(); }
+function bindClose() { sheet.querySelectorAll('.close').forEach(b => b.onclick = closeModal); }
+function closeModal() { modalOpen = false; modalNav = null; $('modal').classList.remove('show'); sfx('close'); }
+$('modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
+
+function openArchive(key) {
+  const a = ARCHIVE[key]; if (!a) return;
+  let i = 0;
+  const go = d => { if (a.images.length < 2) return; i = (i + d + a.images.length) % a.images.length; draw(); };
+  const draw = () => {
+    const imgs = a.images;
+    sheet.innerHTML = `
+      <div class="no">PROJECT ${esc(a.no)}${a.type ? ' · ' + esc(a.type) : ''}</div>
+      <h2>${esc(a.title)}</h2>
+      <div class="viewer">
+        ${imgs.length ? `<img src="${esc(imgs[i])}" alt="${esc(a.title)} 이미지 ${i + 1}">`
+                      : `<div class="empty">아직 등록된 이미지가 없어요<br>ARCHIVE의 images에 사진 경로를 넣어 주세요</div>`}
+        ${imgs.length > 1 ? `<button class="nav prev" aria-label="이전">◀</button><button class="nav next" aria-label="다음">▶</button><div class="count">${i + 1} / ${imgs.length}</div>` : ''}
+      </div>
+      ${a.date ? `<div class="meta">${esc(a.date)}</div>` : ''}
+      <p class="desc">${esc(a.desc)}</p>
+      <div class="actions">
+        ${a.post ? `<a class="btn primary" href="${esc(a.post)}" target="_blank" rel="noopener">인스타 게시물 보기 ▶</a>` : ''}
+        <a class="btn ${a.post ? '' : 'primary'}" href="${SITE.insta}" target="_blank" rel="noopener">인스타 계정 보기</a>
+        <button class="btn close">닫기</button>
+      </div>`;
+    const v = sheet.querySelector('.viewer');
+    v.querySelector('.prev')?.addEventListener('click', () => go(-1));
+    v.querySelector('.next')?.addEventListener('click', () => go(1));
+    let sx = null;
+    v.addEventListener('touchstart', e => sx = e.touches[0].clientX, { passive: true });
+    v.addEventListener('touchend', e => { if (sx === null) return; const dx = e.changedTouches[0].clientX - sx; if (Math.abs(dx) > 40) go(dx < 0 ? 1 : -1); sx = null; });
+    bindClose();
+  };
+  draw(); showModal(); modalNav = go;
+}
+function openInsta() {
+  sheet.innerHTML = `
+    <div class="no">PC · INSTAGRAM</div>
+    <h2>${esc(SITE.instaId)}</h2>
+    <p class="desc">PC를 켰다! 루프터치하우스의 인스타그램 기록을 볼 수 있어요.</p>
+    <div class="actions"><a class="btn primary" href="${SITE.insta}" target="_blank" rel="noopener">인스타그램 열기 ▶</a><button class="btn close">닫기</button></div>
+    <div id="feed"></div>`;
+  const feed = $('feed');
+  if (INSTA_POSTS.length) {
+    feed.innerHTML = INSTA_POSTS.map(u => `<blockquote class="instagram-media" data-instgrm-permalink="${esc(u)}" data-instgrm-version="14" style="width:100%;margin:12px 0"></blockquote>`).join('');
+    if (window.instgrm) window.instgrm.Embeds.process();
+    else { const s = document.createElement('script'); s.async = true; s.src = 'https://www.instagram.com/embed.js'; document.body.appendChild(s); }
+  } else feed.innerHTML = `<p class="hint">INSTA_POSTS에 게시물 주소를 넣으면 여기에 피드가 표시돼요.</p>`;
+  showModal();
+}
+function openContact() {
+  sheet.innerHTML = `
+    <div class="no">MAILBOX · CONTACT</div>
+    <h2>편지 보내기</h2>
+    <p class="desc">협업 제안, 캠프·등반 참여 문의, 굿즈 관련 연락은 언제든 환영해요.</p>
+    <div class="actions" style="flex-direction:column;align-items:stretch">
+      <a class="btn primary" href="mailto:${esc(SITE.email)}">✉ ${esc(SITE.email)}</a>
+      <a class="btn" href="${SITE.insta}" target="_blank" rel="noopener">Instagram ${esc(SITE.instaId)}</a>
+      <button class="btn close">닫기</button>
+    </div>`;
+  showModal();
+}
+function openList() {
+  if (state !== 'play' || fading) return;
+  sheet.innerHTML = `
+    <div class="no">MENU</div><h2>아카이브 목록</h2>
+    <div class="list">
+      ${Object.entries(ARCHIVE).map(([k, a]) => `<button class="btn" data-k="${k}"><span>${esc(a.no)}</span>${esc(a.title)}</button>`).join('')}
+      <button class="btn" data-k="__insta"><span>IG</span>인스타그램</button>
+      <button class="btn" data-k="__contact"><span>✉</span>컨택트</button>
+    </div>
+    <div class="actions"><button class="btn close">닫기</button></div>`;
+  sheet.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
+    const k = b.dataset.k; sfx('a');
+    if (k === '__insta') openInsta(); else if (k === '__contact') openContact(); else openArchive(k);
+  });
+  showModal();
+}
+
+/* =========================================================
+   9. 시간대
+   ========================================================= */
+const TIME_MODES = ['auto', 'day', 'sunset', 'night'];
+const TIME_LABEL = { auto: '자동', day: '낮', sunset: '노을', night: '밤' };
+const TINT = { day: [255, 255, 255, 0], sunset: [255, 190, 150, 0.45], night: [96, 104, 176, 1] };
+let timeMode = 'auto', tint = [255, 255, 255, 0], lastPhase = '';
+function phase() {
+  if (timeMode !== 'auto') return timeMode;
+  const h = new Date().getHours();
+  if (h >= 6 && h < 17) return 'day';
+  if ((h >= 17 && h < 19) || h === 5) return 'sunset';
+  return 'night';
+}
+function updateClock() {
+  const d = new Date(), hm = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  $('timeBtn').textContent = timeMode === 'auto' ? `${hm} ${TIME_LABEL[phase()]}` : TIME_LABEL[timeMode];
+}
+$('timeBtn').onclick = () => { timeMode = TIME_MODES[(TIME_MODES.indexOf(timeMode) + 1) % 4]; sfx('a'); updateClock(); };
+setInterval(updateClock, 10000); updateClock();
+
+/* =========================================================
+   10. 음악 · 효과음 (직접 작곡한 칩튠)
+   ========================================================= */
+let actx = null, master = null, gains = [], loopTimer = null, curTrack = null, soundOn = true;
+const NI = { C: 0, 'C#': 1, D: 2, 'D#': 3, E: 4, F: 5, 'F#': 6, G: 7, 'G#': 8, A: 9, 'A#': 10, B: 11 };
+const freq = n => 440 * Math.pow(2, (NI[n.slice(0, -1)] + (+n.slice(-1) - 4) * 12 - 9) / 12);
+const parse = s => { let t = 0; return s.trim().split(/\s+/).map(tok => { const [n, l] = tok.split('.'); const e = { n, t, l: +l }; t += +l; return e; }); };
+const TOWN_LEAD = 'C5.2 E5.2 G5.2 E5.2 F5.2 A5.2 G5.4 E5.2 G5.2 C6.2 B5.1 A5.1 G5.6 r.2 A5.2 G5.2 F5.2 E5.2 D5.2 E5.2 F5.4 E5.2 D5.2 C5.2 D5.2 C5.6 r.2';
+const TOWN_BASS = 'C3.2 G3.2 C3.2 G3.2 F2.2 C3.2 F2.2 C3.2 C3.2 G3.2 C3.2 G3.2 G2.2 D3.2 G2.2 D3.2 F2.2 C3.2 F2.2 C3.2 G2.2 D3.2 G2.2 D3.2 C3.2 G3.2 G2.2 B2.2 C3.2 G3.2 C3.4';
+const HOUSE_LEAD = 'G4.3 A4.1 B4.2 D5.2 C5.4 B4.2 A4.2 G4.2 E4.2 F4.2 A4.2 G4.8 A4.3 B4.1 C5.2 E5.2 D5.4 C5.2 B4.2 A4.2 F4.2 G4.2 B4.2 C5.8';
+const HOUSE_BASS = 'G2.4 D3.4 A2.4 E3.4 C3.4 F2.4 G2.4 D3.4 F2.4 C3.4 G2.4 B2.4 F2.4 G2.4 C3.8';
+const TRACKS = {
+  town:  { bpm: 124, parts: [{ wave: 'square', vol: .05, ev: parse(TOWN_LEAD) }, { wave: 'triangle', vol: .14, ev: parse(TOWN_BASS) }] },
+  night: { bpm: 92,  parts: [{ wave: 'square', vol: .035, ev: parse(TOWN_LEAD) }, { wave: 'triangle', vol: .12, ev: parse(TOWN_BASS) }] },
+  house: { bpm: 100, parts: [{ wave: 'square', vol: .045, ev: parse(HOUSE_LEAD) }, { wave: 'triangle', vol: .13, ev: parse(HOUSE_BASS) }] }
+};
+function tone(dest, type, f, t, d, v) {
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = type; o.frequency.value = f;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + 0.01);
+  g.gain.setValueAtTime(v, t + d * 0.7); g.gain.linearRampToValueAtTime(0, t + d);
+  o.connect(g); g.connect(dest); o.start(t); o.stop(t + d + 0.02);
+}
+function scheduleLoop(t0) {
+  const tr = TRACKS[curTrack], step = 60 / tr.bpm / 2;
+  const g = actx.createGain(); g.connect(master); gains.push(g); if (gains.length > 3) gains.shift();
+  let len = 0;
+  for (const p of tr.parts) for (const e of p.ev) { len = Math.max(len, e.t + e.l); if (e.n !== 'r') tone(g, p.wave, freq(e.n), t0 + e.t * step, e.l * step * 0.85, p.vol); }
+  const end = t0 + len * step;
+  loopTimer = setTimeout(() => scheduleLoop(end), Math.max(0, (end - actx.currentTime - 0.4) * 1000));
+}
+function stopMusic() {
+  clearTimeout(loopTimer);
+  const now = actx.currentTime;
+  gains.forEach(g => { g.gain.setValueAtTime(g.gain.value, now); g.gain.linearRampToValueAtTime(0, now + 0.15); setTimeout(() => g.disconnect(), 300); });
+  gains = [];
+}
+function playTrack(name) {
+  if (!actx || (name === curTrack && gains.length)) return;
+  if (gains.length) stopMusic();
+  curTrack = name; scheduleLoop(actx.currentTime + 0.2);
+}
+function updateMusic() { playTrack(cur.id === 'house' ? 'house' : (phase() === 'night' ? 'night' : 'town')); }
+function sfx(type) {
+  if (!actx || !soundOn) return;
+  const t = actx.currentTime;
+  if (type === 'a') { tone(master, 'square', freq('A5'), t, 0.05, 0.05); tone(master, 'square', freq('E6'), t + 0.05, 0.06, 0.05); }
+  if (type === 'door') { tone(master, 'square', freq('C5'), t, 0.08, 0.05); tone(master, 'square', freq('G4'), t + 0.08, 0.12, 0.05); }
+  if (type === 'close') tone(master, 'square', freq('E5'), t, 0.05, 0.04);
+}
+function initAudio() {
+  if (actx) return;
+  const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+  actx = new AC(); master = actx.createGain(); master.gain.value = soundOn ? 0.6 : 0; master.connect(actx.destination);
+  if (actx.resume) actx.resume();
+}
+$('sndBtn').onclick = () => {
+  soundOn = !soundOn; initAudio();
+  if (master) master.gain.value = soundOn ? 0.6 : 0;
+  $('sndBtn').textContent = soundOn ? '♪ ON' : '♪ OFF';
+  if (state === 'play') updateMusic();
+};
+
+/* =========================================================
+   11. 입력 (키보드 · 조이스틱 · 버튼 · 탭)
+   ========================================================= */
+function start() {
+  if (state !== 'title') return;
+  state = 'play'; $('title').classList.add('hide');
+  initAudio(); updateMusic();
+}
+$('title').addEventListener('click', start);
+addEventListener('keydown', e => {
+  const k = e.key.toLowerCase();
+  if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
+  keys[k] = true;
+  if (e.repeat) return;
+  if (state === 'title') return start();
+  if (modalOpen && modalNav && (k === 'arrowleft' || k === 'arrowright')) return modalNav(k === 'arrowleft' ? -1 : 1);
+  if (['z', 'enter', ' ', 'e'].includes(k)) pressA();
+  if (k === 'x' || k === 'escape') pressB();
+});
+addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+
+const joy = $('joy'), knob = $('knob'); let joyId = null;
+function moveJoy(e) {
+  const r = joy.getBoundingClientRect();
+  let dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+  const d = Math.hypot(dx, dy), max = 34;
+  if (d > max) { dx *= max / d; dy *= max / d; }
+  knob.style.transform = `translate(${dx}px,${dy}px)`;
+  joyDir = d < 12 ? null : (Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
+}
+joy.addEventListener('pointerdown', e => { joyId = e.pointerId; joy.setPointerCapture(e.pointerId); moveJoy(e); });
+joy.addEventListener('pointermove', e => { if (e.pointerId === joyId) moveJoy(e); });
+const endJoy = e => { if (e.pointerId !== joyId) return; joyId = null; joyDir = null; knob.style.transform = ''; };
+joy.addEventListener('pointerup', endJoy); joy.addEventListener('pointercancel', endJoy);
+
+$('btnA').addEventListener('pointerdown', e => { e.preventDefault(); pressA(); });
+$('btnB').addEventListener('pointerdown', e => { e.preventDefault(); bHeld = true; pressB(); });
+['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => $('btnB').addEventListener(ev, () => bHeld = false));
+$('dialog').addEventListener('click', () => { sfx('a'); advance(); });
+$('prompt').addEventListener('click', pressA);
+$('listBtn').onclick = () => { sfx('a'); openList(); };
+
+// 화면의 오브젝트·NPC를 직접 눌러도 열림
+cv.addEventListener('pointerup', e => {
+  if (locked()) return;
+  const tx = Math.floor((e.clientX / scale + cam.x) / 16), ty = Math.floor((e.clientY / scale + cam.y) / 16);
+  const n = cur.npcs.find(n => n.x === tx && (n.y === ty || n.y === ty + 1));
+  if (n) return interact({ kind: 'npc', npc: n });
+  const a = cur.acts.find(a => tx >= a.x && tx < a.x + a.w && ty >= a.y - (a.up || 0) && ty < a.y + a.h);
+  if (a) interact(a);
+});
+
+/* =========================================================
+   12. 화면 크기 · HUD · 렌더링
+   ========================================================= */
+let scale = 2;
+const cam = { x: 0, y: 0 };
+function resize() {
+  scale = Math.max(2, Math.floor(Math.min(innerWidth, innerHeight) / 150));
+  cv.width = Math.ceil(innerWidth / scale); cv.height = Math.ceil(innerHeight / scale);
+  cv.style.width = cv.width * scale + 'px'; cv.style.height = cv.height * scale + 'px';
+  ctx.imageSmoothingEnabled = false;
+}
+addEventListener('resize', resize); resize();
+
+const LABEL = { archive: '프로젝트 보기', dialog: '읽기', npc: '말 걸기', contact: '편지 보내기', insta: '인스타그램 보기' };
+let hudKey = null, promptLabel = null;
+function updateHUD() {
+  let near = null, best = 99;
+  for (const a of cur.acts) {
+    if (a.kind !== 'archive') continue;
+    const dx = Math.max(a.x - P.x, 0, P.x - (a.x + a.w - 1)), dy = Math.max(a.y - P.y, 0, P.y - (a.y + a.h - 1));
+    if (dx + dy <= 2 && dx + dy < best) { best = dx + dy; near = a; }
+  }
+  const key = near ? near.key : '';
+  if (key !== hudKey) {
+    hudKey = key;
+    if (near) $('tag').innerHTML = `<small>PROJECT ${esc(ARCHIVE[key].no)}</small><b>${esc(ARCHIVE[key].title)}</b>`;
+    $('tag').classList.toggle('show', !!near);
+  }
+  const f = (!locked() && !P.moving) ? facing() : null, label = f ? LABEL[f.kind] : '';
+  if (label !== promptLabel) {
+    promptLabel = label;
+    $('prompt').querySelector('span').textContent = label;
+    $('prompt').classList.toggle('show', !!label);
+  }
+}
+const frameOf = e => !e.moving ? 0 : (e.t < 0.5 ? (e.flip ? 1 : 2) : 0);
+function drawEnt(e) {
+  const x = Math.round(e.px - cam.x), y = Math.round(e.py - cam.y);
+  ctx.fillStyle = 'rgba(0,0,0,.2)'; ctx.fillRect(x + 3, y + 13, 10, 3);
+  ctx.drawImage(e.spr[e.dir][frameOf(e)], x, y - 4);
+}
+function render(t) {
+  const vw = cv.width, vh = cv.height, mw = cur.w * 16, mh = cur.h * 16;
+  cam.x = mw > vw ? Math.max(0, Math.min(mw - vw, Math.round(P.px + 8 - vw / 2))) : Math.round((mw - vw) / 2);
+  cam.y = mh > vh ? Math.max(0, Math.min(mh - vh, Math.round(P.py + 8 - vh / 2))) : Math.round((mh - vh) / 2);
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, vw, vh);
+  ctx.drawImage(cur.ground, -cam.x, -cam.y);
+
+  const list = [...cur.objects, ...[P, ...cur.npcs].map(e => ({ ent: e, base: e.py + 16 }))].sort((a, b) => a.base - b.base);
+  for (const o of list) {
+    if (o.ent) drawEnt(o.ent);
+    else if (o.draw) o.draw(ctx, o.x - cam.x, o.y - cam.y, t);
+    else ctx.drawImage(o.img, o.x - cam.x, o.y - cam.y);
+  }
+
+  if (tint[0] < 254 || tint[1] < 254 || tint[2] < 254) {
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.fillStyle = `rgb(${tint[0] | 0},${tint[1] | 0},${tint[2] | 0})`;
+    ctx.fillRect(0, 0, vw, vh);
+    ctx.globalCompositeOperation = 'lighter';
+    for (const L of cur.lights) {
+      const x = L.x - cam.x, y = L.y - cam.y, a = 0.55 * tint[3];
+      const g = ctx.createRadialGradient(x, y, 0, x, y, L.r);
+      g.addColorStop(0, `rgba(255,190,110,${a})`); g.addColorStop(1, 'rgba(255,190,110,0)');
+      ctx.fillStyle = g; ctx.fillRect(x - L.r, y - L.r, L.r * 2, L.r * 2);
+    }
+    ctx.globalCompositeOperation = 'source-over';
+  }
+}
+function update(dt) {
+  updatePlayer(dt);
+  updateNPCs(dt);
+  if (dlg.active) { dlg.shown = Math.min(dlg.full.length, dlg.shown + dt * 40); $('dtext').textContent = dlg.full.slice(0, dlg.shown | 0); }
+  const ph = phase();
+  let tp = TINT[ph];
+  if (cur.id === 'house') tp = ph === 'night' ? [215, 205, 230, 0.5] : ph === 'sunset' ? [255, 235, 215, 0.2] : [255, 255, 255, 0];
+  tint = tint.map((v, i) => v + (tp[i] - v) * Math.min(1, dt * 2));
+  if (ph !== lastPhase) { lastPhase = ph; if (state === 'play') updateMusic(); updateClock(); }
+  updateHUD();
+}
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  update(dt); render(now / 1000);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
