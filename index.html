@@ -4,6 +4,37 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>ROOF TOUCH HOUSE ARCHIVE</title>
+<script>
+window.showErr = function (msg) {
+  var box = document.getElementById('errbox');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'errbox';
+    box.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:99999;background:#c00;color:#fff;font:13px/1.6 sans-serif;padding:10px;white-space:pre-wrap;max-height:50vh;overflow:auto';
+    box.onclick = function () { box.style.display = 'none'; };
+    (document.body || document.documentElement).appendChild(box);
+  }
+  if (box.textContent.indexOf(msg) >= 0) return;
+  box.style.display = 'block';
+  box.textContent += msg + '\n';
+};
+window.addEventListener('error', function (e) {
+  var line = e.lineno || 0;
+  window.showErr('오류: ' + (e.message || '') + ' (' + (line || '?') + '행)\n이 화면을 캡처해서 보내 주세요. (빨간 박스를 누르면 닫혀요)');
+  if (!line || !window.fetch) return;
+  fetch(location.href, { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (src) {
+    var rows = src.split('\n');
+    var endMark = 'ROOFTOUCH' + '-END';
+    var docMark = '<' + '!DOCTYPE';
+    var ends = src.split(endMark).length - 1;
+    var docs = src.split(docMark).length - 1;
+    var info = '문제 줄 내용: ' + String(rows[line - 1] || '').trim().slice(0, 160) + '\n파일 전체 ' + rows.length + '줄';
+    if (docs > 1) info += '\n→ 코드가 두 번 들어가 있어요. 전부 지운 뒤 한 번만 붙여넣어 주세요.';
+    if (ends < 1) info += '\n→ 코드 끝부분이 잘렸어요. 마지막 줄까지 다 붙여넣어 주세요.';
+    window.showErr(info);
+  }).catch(function () {});
+});
+</script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri/dist/galmuri.css">
 <style>
 :root{--ink:#303038;--line:#505868;--orange:#f05a1e;--paper:#f8f8f8;}
@@ -14,29 +45,21 @@ body{font-family:'Galmuri11','Galmuri9',monospace;color:var(--ink);user-select:n
 .box{background:var(--paper);border:4px solid var(--line);border-radius:8px;box-shadow:inset 0 0 0 3px #c8d8f0,0 4px 0 rgba(0,0,0,.3);}
 .btn{display:inline-block;font:inherit;font-size:13px;padding:8px 12px;background:var(--paper);border:3px solid var(--line);border-radius:6px;color:var(--ink);cursor:pointer;text-decoration:none;}
 .btn.primary{background:var(--orange);color:#fff;}
-
-/* 상단 HUD */
 #top{position:fixed;top:calc(10px + env(safe-area-inset-top));right:10px;display:flex;gap:6px;z-index:10;}
 #top .btn{font-size:12px;padding:6px 9px;}
 #tag{position:fixed;top:calc(58px + env(safe-area-inset-top));left:14px;z-index:10;color:#fff;text-shadow:2px 2px 0 #000;pointer-events:none;opacity:0;transform:translateY(-6px);transition:.25s;}
 #tag.show{opacity:1;transform:none;}
 #tag small{font-size:11px;letter-spacing:.25em;}
 #tag b{display:block;font-size:22px;margin-top:6px;font-weight:normal;}
-
-/* 보기 프롬프트 */
 #prompt{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:10;display:none;align-items:center;gap:8px;padding:8px 14px;font-size:14px;color:#fff;text-shadow:2px 2px 0 #000;cursor:pointer;}
 #prompt.show{display:flex;}
 #prompt kbd{font:inherit;font-size:12px;padding:2px 7px;border:2px solid #fff;border-radius:4px;text-shadow:none;background:rgba(0,0,0,.35);}
 body.touch #prompt{bottom:calc(170px + env(safe-area-inset-bottom));}
-
-/* 대화창 */
 #dialog{position:fixed;left:10px;right:10px;bottom:calc(20px + env(safe-area-inset-bottom));max-width:640px;margin:0 auto;padding:14px 18px 20px;min-height:86px;font-size:15px;line-height:1.75;z-index:15;display:none;cursor:pointer;}
 #dialog.show{display:block;}
 #dialog::after{content:'▼';position:absolute;right:14px;bottom:6px;font-size:10px;color:#e04030;animation:blink .7s steps(2) infinite;}
 body.touch #dialog{bottom:calc(170px + env(safe-area-inset-bottom));}
 @keyframes blink{50%{opacity:0}}
-
-/* 모바일 조작 */
 #pad{display:none;}
 body.touch #pad{display:block;}
 #joy{position:fixed;right:22px;bottom:calc(26px + env(safe-area-inset-bottom));width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.25);border:3px solid rgba(255,255,255,.7);touch-action:none;z-index:12;}
@@ -44,8 +67,6 @@ body.touch #pad{display:block;}
 .ab{position:fixed;width:62px;height:62px;border-radius:50%;font:inherit;font-size:20px;color:var(--ink);background:rgba(248,248,248,.92);border:3px solid var(--line);touch-action:none;z-index:12;}
 #btnA{left:100px;bottom:calc(62px + env(safe-area-inset-bottom));}
 #btnB{left:22px;bottom:calc(24px + env(safe-area-inset-bottom));}
-
-/* 상세 모달 */
 #modal{position:fixed;inset:0;z-index:30;display:none;align-items:center;justify-content:center;padding:14px;background:rgba(0,0,0,.55);}
 #modal.show{display:flex;}
 #sheet{width:100%;max-width:560px;max-height:88vh;overflow:auto;padding:18px;user-select:text;-webkit-user-select:text;}
@@ -56,17 +77,16 @@ body.touch #pad{display:block;}
 .viewer .nav{position:absolute;top:50%;transform:translateY(-50%);font:inherit;font-size:16px;padding:8px 10px;border:0;background:rgba(0,0,0,.45);color:#fff;cursor:pointer;}
 .viewer .prev{left:0}.viewer .next{right:0}
 .viewer .count{position:absolute;right:8px;bottom:6px;font-size:11px;color:#fff;text-shadow:1px 1px 0 #000;}
-.empty{color:#9ab0c8;font-size:13px;line-height:1.9;text-align:center;padding:12px;}
+.empty{color:#9ab0c8;font-size:13px;line-height:1.9;text-align:center;padding:12px;white-space:pre-line;}
 .meta{font-size:12px;color:#888;margin-top:10px;}
 .desc{font-size:14px;line-height:1.85;margin-top:10px;white-space:pre-line;}
 .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;}
+.actions.col{flex-direction:column;align-items:stretch;}
 .list{display:grid;gap:8px;margin-top:6px;}
-.list button{text-align:left;}
+.list .btn{text-align:left;}
 .list span{color:var(--orange);margin-right:8px;}
 #feed{margin-top:12px;}
 .hint{font-size:12px;color:#888;line-height:1.8;margin-top:12px;}
-
-/* 타이틀 · 전환 */
 #title{position:fixed;inset:0;z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:linear-gradient(#88c8f0 62%,#78c878 62%);cursor:pointer;transition:opacity .5s;}
 #title.hide{opacity:0;pointer-events:none;}
 #logo{width:192px;height:196px;image-rendering:pixelated;}
@@ -109,109 +129,142 @@ body.touch #pad{display:block;}
 const SITE = {
   insta: 'https://www.instagram.com/roof_touch_house/',
   instaId: '@roof_touch_house',
-  email: 'your@email.com'                    // ← 실제 메일 주소로 교체
+  email: 'your@email.com'
 };
 
-// 인스타 게시물 주소를 넣으면 PC·게시판에서 피드로 보여 줍니다.
-// 예: 'https://www.instagram.com/p/게시물코드/'
 const INSTA_POSTS = [];
 
-// images: 'images/파일명.jpg' 형태로 여러 장 가능
-// post: 해당 프로젝트의 인스타 게시물 주소 (없으면 계정으로 연결)
 const ARCHIVE = {
-  hallasan: { no:'머리닿는 집', type:'제주', title:'한라산 원정대', date:'2026년 3월', images:[], post:'',
-              desc:'사람들을 모아 눈덮인 한라산을 오른 기록입니다.' },
-  camp:     { no:'숨섬쉼', type:'제주', title:'대나무숲 바베큐', date:'2025년 여름', images:[], post:'',
-              desc:'아무도 없는 경주마 목장 속 대나무 숲에서 우리들만의 바베큐와 캠프파이어.' },
-  goods:    { no:'숨섬쉼', type:'서울', title:'클로징파티', date:'2025년 11월', images:[], post:'',
-              desc:'직접 만든 굿즈 아직도 다 안팔림.\n구매문의 DM 주세요...' },
-  work1:    { no:'04', type:'오프라인 프로젝트', title:'개인 프로젝트 1', date:'', images:[], post:'', desc:'(설명을 입력하세요)' },
-  work2:    { no:'05', type:'오프라인 프로젝트', title:'개인 프로젝트 2', date:'', images:[], post:'', desc:'(설명을 입력하세요)' },
-  work3:    { no:'06', type:'오프라인 프로젝트', title:'개인 프로젝트 3', date:'', images:[], post:'', desc:'(설명을 입력하세요)' },
-  work4:    { no:'07', type:'오프라인 프로젝트', title:'개인 프로젝트 4', date:'', images:[], post:'', desc:'(설명을 입력하세요)' },
-  books:    { no:'08', type:'기록', title:'기록집 · 자료', date:'', images:[], post:'', desc:'(설명을 입력하세요)' },
-  table:    { no:'09', type:'소품', title:'소품 · 샘플', date:'', images:[], post:'', desc:'(설명을 입력하세요)' }
+  hallasan: { no: '머리닿는 집', type: '제주', title: '한라산 원정대', date: '2026년 3월', images: [], post: '',
+              desc: '사람들을 모아 눈덮인 한라산을 오른 기록입니다.' },
+  camp:     { no: '숨섬쉼', type: '제주', title: '대나무숲 바베큐', date: '2025년 여름', images: [], post: '',
+              desc: '아무도 없는 경주마 목장 속 대나무 숲에서 우리들만의 바베큐와 캠프파이어.' },
+  goods:    { no: '숨섬쉼', type: '서울', title: '클로징파티', date: '2025년 11월', images: [], post: '',
+              desc: '직접 만든 굿즈 아직도 다 안팔림.\n구매문의 DM 주세요...' },
+  work1:    { no: '04', type: '오프라인 프로젝트', title: '개인 프로젝트 1', date: '', images: [], post: '', desc: '(설명을 입력하세요)' },
+  work2:    { no: '05', type: '오프라인 프로젝트', title: '개인 프로젝트 2', date: '', images: [], post: '', desc: '(설명을 입력하세요)' },
+  work3:    { no: '06', type: '오프라인 프로젝트', title: '개인 프로젝트 3', date: '', images: [], post: '', desc: '(설명을 입력하세요)' },
+  work4:    { no: '07', type: '오프라인 프로젝트', title: '개인 프로젝트 4', date: '', images: [], post: '', desc: '(설명을 입력하세요)' },
+  books:    { no: '08', type: '기록', title: '기록집 · 자료', date: '', images: [], post: '', desc: '(설명을 입력하세요)' },
+  table:    { no: '09', type: '소품', title: '소품 · 샘플', date: '', images: [], post: '', desc: '(설명을 입력하세요)' }
 };
 
 /* =========================================================
    2. 기본 도구
    ========================================================= */
-const $ = id => document.getElementById(id);
-const cv = $('game'), ctx = cv.getContext('2d');
-const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const R = (g, c, x, y, w = 1, h = 1) => { g.fillStyle = c; g.fillRect(x, y, w, h); };
-const hsh = (x, y) => ((x * 73856093) ^ (y * 19349663)) >>> 0;
-function makeCanvas(w, h) { const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; return [c, g]; }
+const $ = function (id) { return document.getElementById(id); };
+const cv = $('game');
+const ctx = cv.getContext('2d');
+function R(g, c, x, y, w, h) {
+  g.fillStyle = c;
+  g.fillRect(x, y, w === undefined ? 1 : w, h === undefined ? 1 : h);
+}
+function hsh(x, y) { return ((x * 73856093) ^ (y * 19349663)) >>> 0; }
+function wave(t, wx) { return Math.sin(t * 1.4 - wx * 0.022); }
+function makeCanvas(w, h) {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const g = c.getContext('2d');
+  g.imageSmoothingEnabled = false;
+  return { c: c, g: g };
+}
+// '1,2 3,4' 같은 글자를 좌표 목록으로 바꿈
+function pts(s) {
+  return s.split(' ').map(function (q) { const p = q.split(','); return { x: Number(p[0]), y: Number(p[1]) }; });
+}
+// 화면 요소 만들기 도구
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+function makeLink(cls, href, text) {
+  const a = el('a', cls, text);
+  a.href = href; a.target = '_blank'; a.rel = 'noopener';
+  return a;
+}
+function makeBtn(cls, text, fn) {
+  const b = el('button', cls, text);
+  b.type = 'button';
+  b.onclick = fn;
+  return b;
+}
 if (matchMedia('(pointer:coarse)').matches || 'ontouchstart' in window) document.body.classList.add('touch');
 const isTouch = document.body.classList.contains('touch');
 $('key').textContent = isTouch ? 'A' : 'Space';
 
 /* =========================================================
-   3. 캐릭터 스프라이트 (직접 그린 16x16 픽셀)
+   3. 캐릭터 스프라이트 (16x16 픽셀)
    ========================================================= */
 const HEAD = {
-  down: [".....KKKKKK.....","....KOOOOOOK....","...KOOOWWOOOK...","...KOOOOOOOOK...","..KKKKKKKKKKKK..",
-         "...KHHSSSSHHK...","...KHSKSSKSHK...","...KSSSSSSSSK...","....KSSSSSSK....","...KTTTWWTTTK...",
-         "..KSTTTWWTTTSK..","..KSKTTTTTTKSK..","...KKNNNNNNKK..."],
-  up:   [".....KKKKKK.....","....KOOOOOOK....","...KOOOOOOOOK...","...KOOOOOOOOK...","..KKKKKKKKKKKK..",
-         "...KHHHHHHHHK...","...KHHHHHHHHK...","...KHHHHHHHHK...","....KHHHHHHK....","...KTTTTTTTTK...",
-         "..KSTTTTTTTTSK..","..KSKTTTTTTKSK..","...KKNNNNNNKK..."],
-  side: [".....KKKKKK.....","....KOOOOOOK....","...KOOOOOWWOK...","...KOOOOOOOOK...","...KKKKKKKKKKKK.",
-         "...KHHHHSSSK....","...KHHHSSKSK....","...KHHSSSSSK....","....KHSSSSK.....","....KTTTTTK.....",
-         "....KTTSSTK.....","....KTTSSTK.....","....KNNNNNK....."]
+  down: '.....KKKKKK.....|....KOOOOOOK....|...KOOOWWOOOK...|...KOOOOOOOOK...|..KKKKKKKKKKKK..|...KHHSSSSHHK...|...KHSKSSKSHK...|...KSSSSSSSSK...|....KSSSSSSK....|...KTTTWWTTTK...|..KSTTTWWTTTSK..|..KSKTTTTTTKSK..|...KKNNNNNNKK...',
+  up:   '.....KKKKKK.....|....KOOOOOOK....|...KOOOOOOOOK...|...KOOOOOOOOK...|..KKKKKKKKKKKK..|...KHHHHHHHHK...|...KHHHHHHHHK...|...KHHHHHHHHK...|....KHHHHHHK....|...KTTTTTTTTK...|..KSTTTTTTTTSK..|..KSKTTTTTTKSK..|...KKNNNNNNKK...',
+  side: '.....KKKKKK.....|....KOOOOOOK....|...KOOOOOWWOK...|...KOOOOOOOOK...|...KKKKKKKKKKKK.|...KHHHHSSSK....|...KHHHSSKSK....|...KHHSSSSSK....|....KHSSSSK.....|....KTTTTTK.....|....KTTSSTK.....|....KTTSSTK.....|....KNNNNNK.....'
 };
 const LEGS = {
-  down: { stand:["....KNNKKNNK....","....KNNKKNNK....","....KKK..KKK...."],
-          a:    ["....KNNKKNNK....","....KNNK.KKK....","....KKK........."],
-          b:    ["....KNNKKNNK....","....KKK.KNNK....",".........KKK...."] },
-  side: { stand:["....KNNNNK......","....KNNNNK......","....KKKKKK......"],
-          a:    ["...KNNK.KNK.....","..KNNK...KNK....","..KKK.....KKK..."] }
+  down: {
+    stand: '....KNNKKNNK....|....KNNKKNNK....|....KKK..KKK....',
+    a:     '....KNNKKNNK....|....KNNK.KKK....|....KKK.........',
+    b:     '....KNNKKNNK....|....KKK.KNNK....|.........KKK....'
+  },
+  side: {
+    stand: '....KNNNNK......|....KNNNNK......|....KKKKKK......',
+    a:     '...KNNK.KNK.....|..KNNK...KNK....|..KKK.....KKK...'
+  }
 };
 LEGS.side.b = LEGS.side.stand;
 
 function buildChar(pal) {
   const out = {};
-  for (const dir of ['down', 'up', 'left', 'right']) {
+  ['down', 'up', 'left', 'right'].forEach(function (dir) {
     const base = (dir === 'left' || dir === 'right') ? 'side' : dir;
-    const legs = base === 'side' ? LEGS.side : LEGS.down;
-    out[dir] = ['stand', 'a', 'b'].map(f => {
-      const [c, g] = makeCanvas(16, 16);
-      HEAD[base].concat(legs[f]).forEach((row, y) => [...row].forEach((ch, x) => {
-        if (ch !== '.') R(g, pal[ch], dir === 'left' ? 15 - x : x, y);
-      }));
-      return c;
+    const legs = (base === 'side') ? LEGS.side : LEGS.down;
+    out[dir] = ['stand', 'a', 'b'].map(function (f) {
+      const k = makeCanvas(16, 16);
+      const lines = (HEAD[base] + '|' + legs[f]).split('|');
+      lines.forEach(function (row, y) {
+        for (let x = 0; x < row.length; x++) {
+          const ch = row.charAt(x);
+          if (ch !== '.') R(k.g, pal[ch], dir === 'left' ? 15 - x : x, y);
+        }
+      });
+      return k.c;
     });
-  }
+  });
   return out;
 }
-const BASE_PAL = { K:'#282830', W:'#f8f8f8', S:'#f8c8a0', N:'#384068' };
+const BASE_PAL = { K: '#282830', W: '#f8f8f8', S: '#f8c8a0', N: '#384068' };
+function palette(extra) { return Object.assign({}, BASE_PAL, extra); }
 const SPR = {
-  player: buildChar({ ...BASE_PAL, O:'#f05a1e', H:'#503828', T:'#3070d0' }),
-  npc1:   buildChar({ ...BASE_PAL, O:'#48a048', H:'#303030', T:'#e8b830' }),
-  npc2:   buildChar({ ...BASE_PAL, O:'#8858c8', H:'#a06030', T:'#e86878' })
+  player: buildChar(palette({ O: '#f05a1e', H: '#503828', T: '#3070d0' })),
+  npc1:   buildChar(palette({ O: '#48a048', H: '#303030', T: '#e8b830' })),
+  npc2:   buildChar(palette({ O: '#8858c8', H: '#a06030', T: '#e86878' }))
 };
 
 /* =========================================================
    4. 오브젝트 스프라이트
    ========================================================= */
 const GLYPH = {
-  R:'####.|#...#|####.|#..#.|#...#', O:'.###.|#...#|#...#|#...#|.###.', F:'#####|#....|####.|#....|#....',
-  T:'#####|..#..|..#..|..#..|..#..', U:'#...#|#...#|#...#|#...#|.###.', C:'.####|#....|#....|#....|.####',
-  H:'#...#|#...#|#####|#...#|#...#', S:'.####|#....|.###.|....#|####.', E:'#####|#....|####.|#....|#####',
-  G:'.####|#....|#..##|#...#|.###.', D:'####.|#...#|#...#|#...#|####.'
+  R: '####.|#...#|####.|#..#.|#...#', O: '.###.|#...#|#...#|#...#|.###.', F: '#####|#....|####.|#....|#....',
+  T: '#####|..#..|..#..|..#..|..#..', U: '#...#|#...#|#...#|#...#|.###.', C: '.####|#....|#....|#....|.####',
+  H: '#...#|#...#|#####|#...#|#...#', S: '.####|#....|.###.|....#|####.', E: '#####|#....|####.|#....|#####',
+  G: '.####|#....|#..##|#...#|.###.', D: '####.|#...#|#...#|#...#|####.'
 };
-function drawText(g, str, cx, y, s = 2, color = '#202020') {
+function drawText(g, str, cx, y, s, color) {
+  s = s || 2; color = color || '#202020';
   const total = str.length * 6 * s - s;
   let x = Math.round(cx - total / 2);
-  for (const ch of str) {
-    GLYPH[ch].split('|').forEach((row, j) => [...row].forEach((p, i) => { if (p === '#') R(g, color, x + i * s, y + j * s, s, s); }));
+  for (let k = 0; k < str.length; k++) {
+    const rows = GLYPH[str.charAt(k)].split('|');
+    rows.forEach(function (row, j) {
+      for (let i = 0; i < row.length; i++) if (row.charAt(i) === '#') R(g, color, x + i * s, y + j * s, s, s);
+    });
     x += 6 * s;
   }
 }
-
-// ROOF TOUCH HOUSE 로고 → 픽셀 건물 (96x98)
 function makeHouse() {
-  const [c, g] = makeCanvas(96, 98);
+  const k = makeCanvas(96, 98), g = k.g;
   const OR = '#f05a1e', ORD = '#b83a10', K = '#202020', WH = '#ffffff';
   for (let y = 2; y <= 37; y++) {
     const half = Math.round((y - 2) * 47 / 35), x0 = 48 - half, x1 = 48 + half;
@@ -219,175 +272,552 @@ function makeHouse() {
     R(g, OR, x0, y, x1 - x0, 1);
     if (x1 - x0 > 8) R(g, WH, x0 + 4, y, x1 - x0 - 8, 1);
   }
-  R(g, K, 0, 36, 14, 3); R(g, K, 82, 36, 14, 3);          // 지붕 아래 검은 턱
-  R(g, WH, 14, 38, 68, 57);                                // 벽
-  R(g, '#e8e8e8', 76, 38, 5, 57);                          // 벽 그늘
+  R(g, K, 0, 36, 14, 3); R(g, K, 82, 36, 14, 3);
+  R(g, WH, 14, 38, 68, 57);
+  R(g, '#e8e8e8', 76, 38, 5, 57);
   R(g, K, 11, 36, 3, 62); R(g, K, 82, 36, 3, 62); R(g, K, 11, 95, 74, 3);
   drawText(g, 'ROOF', 48, 26); drawText(g, 'TOUCH', 48, 40); drawText(g, 'HOUSE', 48, 54);
-  R(g, K, 35, 68, 26, 27); R(g, '#8a5a30', 37, 70, 22, 25);  // 문
+  R(g, K, 35, 68, 26, 27); R(g, '#8a5a30', 37, 70, 22, 25);
   R(g, '#9ad0f0', 39, 72, 8, 7); R(g, '#9ad0f0', 49, 72, 8, 7);
   R(g, K, 47, 70, 2, 25);
   R(g, '#f8d048', 44, 84, 2, 2); R(g, '#f8d048', 50, 84, 2, 2);
-  return c;
+  return k.c;
 }
 function makeTree() {
-  const [c, g] = makeCanvas(16, 24);
+  const k = makeCanvas(16, 24), g = k.g;
   R(g, '#7a4a28', 6, 19, 4, 5); R(g, '#5a3418', 6, 22, 4, 2);
-  const tiers = [[0, 6, 2, 8], [4, 12, 4, 12], [9, 19, 6, 16]];
+  const tiers = [0, 6, 2, 8, 4, 12, 4, 12, 9, 19, 6, 16];
   for (let y = 0; y < 20; y++) {
     let w = 0;
-    for (const [a, b, w0, w1] of tiers) if (y >= a && y <= b) w = Math.max(w, Math.round((w0 + (w1 - w0) * (y - a) / (b - a)) / 2) * 2);
+    for (let q = 0; q < tiers.length; q += 4) {
+      const a = tiers[q], b = tiers[q + 1], w0 = tiers[q + 2], w1 = tiers[q + 3];
+      if (y >= a && y <= b) w = Math.max(w, Math.round((w0 + (w1 - w0) * (y - a) / (b - a)) / 2) * 2);
+    }
     const x0 = 8 - w / 2;
     R(g, '#1f5a38', x0, y, w, 1);
-    if (w > 2) { R(g, '#2f8a4f', x0 + 1, y, w - 2, 1); R(g, '#4fae62', x0 + 1, y, Math.max(1, (w - 2) / 3 | 0), 1); }
+    if (w > 2) { R(g, '#2f8a4f', x0 + 1, y, w - 2, 1); R(g, '#4fae62', x0 + 1, y, Math.max(1, Math.floor((w - 2) / 3)), 1); }
   }
-  return c;
+  return k.c;
 }
-function makeTent(col, dark) {
-  const [c, g] = makeCanvas(32, 28);
-  for (let y = 0; y < 26; y++) {
-    const half = 1 + Math.round(y * 14 / 25);
-    R(g, '#202020', 16 - half - 1, y, half * 2 + 2, 1);
-    R(g, col, 16 - half, y, half * 2, 1);
-    R(g, dark, 16, y, half, 1);
+// 키 큰 대나무 (18x52)
+function makeBamboo(v) {
+  const k = makeCanvas(18, 52), g = k.g;
+  const greens = ['#8fae6a', '#a6bd78', '#7a9a58', '#b4b884'];
+  const stems = [1, 2, 6, 3, 11, 2, 15, 2];
+  for (let i = 0; i < 4; i++) {
+    const sx = stems[i * 2], w = stems[i * 2 + 1];
+    const col = greens[(i + v) % 4], top = 4 + ((v * 3 + i * 5) % 7);
+    R(g, '#2e4026', sx + w, top, 1, 52 - top);
+    R(g, col, sx, top, w, 52 - top);
+    if (w > 2) R(g, '#c8d49c', sx, top, 1, 52 - top);
+    for (let y = top + 3 + ((i + v) % 4) * 2; y < 52; y += 10) {
+      R(g, '#eef0d0', sx - (w > 2 ? 1 : 0), y, w + 1, 1);
+      R(g, '#4a5e36', sx, y + 1, w, 1);
+    }
   }
-  for (let y = 12; y < 26; y++) { const h = Math.round((y - 12) * 5 / 13); R(g, '#3a2a20', 16 - h, y, h * 2, 1); }
-  R(g, '#6a4020', 0, 26, 2, 2); R(g, '#6a4020', 30, 26, 2, 2);
-  return c;
+  const leafCols = ['#2f6a3a', '#4a8a44', '#6aa858', '#3a7a3e'];
+  for (let i = 0; i < 24; i++) {
+    const h = hsh(i + v * 31, v + 3);
+    const lx = h % 16, ly = ((h >>> 6) % 20) + (i > 17 ? 16 : 0), d = (i % 2) ? 1 : -1, col = leafCols[(h >>> 3) % 4];
+    R(g, col, lx, ly, 3, 1); R(g, col, lx + d, ly + 1, 3, 1);
+  }
+  return k.c;
 }
 function makeStall() {
-  const [c, g] = makeCanvas(64, 44);
+  const k = makeCanvas(64, 44), g = k.g;
   R(g, '#6a4020', 3, 10, 3, 16); R(g, '#6a4020', 58, 10, 3, 16);
-  for (let i = 0; i < 8; i++) { R(g, i % 2 ? '#ffffff' : '#f05a1e', i * 8, 1, 8, 11); R(g, i % 2 ? '#ffffff' : '#f05a1e', i * 8 + 2, 12, 4, 2); }
+  for (let i = 0; i < 8; i++) {
+    const col = (i % 2) ? '#ffffff' : '#f05a1e';
+    R(g, col, i * 8, 1, 8, 11); R(g, col, i * 8 + 2, 12, 4, 1);
+  }
   R(g, '#202020', 0, 0, 64, 1);
   R(g, '#58a0e0', 8, 18, 8, 7); R(g, '#f8d048', 20, 16, 6, 9); R(g, '#e85878', 30, 19, 10, 6); R(g, '#68c070', 46, 17, 7, 8);
   R(g, '#202020', 0, 24, 64, 20); R(g, '#c88848', 1, 25, 62, 18); R(g, '#a86830', 1, 25, 62, 3);
   R(g, '#fff8e0', 15, 30, 34, 9); drawText(g, 'GOODS', 32, 32, 1);
-  return c;
+  return k.c;
 }
 function makeSign() {
-  const [c, g] = makeCanvas(16, 16);
+  const k = makeCanvas(16, 16), g = k.g;
   R(g, '#5a3418', 7, 9, 2, 7); R(g, '#202020', 1, 1, 14, 9); R(g, '#c89050', 2, 2, 12, 7);
   R(g, '#e0b070', 2, 2, 12, 2); R(g, '#8a5a30', 4, 5, 8, 1); R(g, '#8a5a30', 4, 7, 6, 1);
-  return c;
+  return k.c;
 }
 function makeInstaBoard() {
-  const [c, g] = makeCanvas(16, 16);
+  const k = makeCanvas(16, 16), g = k.g;
   R(g, '#5a3418', 7, 9, 2, 7); R(g, '#202020', 1, 1, 14, 9); R(g, '#f8f8f8', 2, 2, 12, 7);
   R(g, '#e04888', 5, 2, 6, 6); R(g, '#f8f8f8', 6, 3, 4, 4); R(g, '#e04888', 7, 4, 2, 2); R(g, '#f8a030', 5, 2, 2, 2);
-  return c;
+  return k.c;
 }
 function makeMailbox() {
-  const [c, g] = makeCanvas(16, 20);
+  const k = makeCanvas(16, 20), g = k.g;
   R(g, '#5a3418', 7, 10, 2, 10); R(g, '#202020', 2, 2, 12, 9); R(g, '#e03838', 3, 3, 10, 7);
   R(g, '#f87070', 3, 3, 10, 2); R(g, '#202020', 5, 6, 6, 1); R(g, '#f8d048', 13, 1, 2, 4);
-  return c;
+  return k.c;
 }
 function makeLamp() {
-  const [c, g] = makeCanvas(16, 32);
+  const k = makeCanvas(16, 32), g = k.g;
   R(g, '#384050', 7, 8, 2, 24); R(g, '#384050', 5, 29, 6, 3);
   R(g, '#384050', 3, 0, 10, 2); R(g, '#202020', 4, 2, 8, 7); R(g, '#fff0b0', 5, 3, 6, 5);
-  return c;
+  return k.c;
 }
 function makePC() {
-  const [c, g] = makeCanvas(16, 24);
+  const k = makeCanvas(16, 24), g = k.g;
   R(g, '#202020', 0, 12, 16, 12); R(g, '#a07040', 1, 13, 14, 10);
   R(g, '#202020', 2, 0, 12, 11); R(g, '#58b8e8', 3, 1, 10, 8);
   R(g, '#e04888', 5, 3, 4, 4); R(g, '#58b8e8', 6, 4, 2, 2); R(g, '#606060', 6, 11, 4, 1);
-  return c;
+  return k.c;
 }
 function makeShelf() {
-  const [c, g] = makeCanvas(32, 32);
+  const k = makeCanvas(32, 32), g = k.g;
   R(g, '#202020', 0, 0, 32, 32); R(g, '#a06838', 1, 1, 30, 30);
   const cols = ['#f05a1e', '#58a0e0', '#f8d048', '#68c070', '#e85878', '#8858c8'];
-  [2, 12, 22].forEach((y, r) => {
-    for (let i = 0; i < 7; i++) R(g, cols[(i + r) % 6], 3 + i * 4, y + (i % 3 === 0 ? 1 : 0), 3, 8 - (i % 3 === 0 ? 1 : 0));
+  [2, 12, 22].forEach(function (y, r) {
+    for (let i = 0; i < 7; i++) {
+      const tall = (i % 3 === 0);
+      R(g, cols[(i + r) % 6], 3 + i * 4, y + (tall ? 1 : 0), 3, 8 - (tall ? 1 : 0));
+    }
     R(g, '#6a4020', 1, y + 8, 30, 2);
   });
-  return c;
+  return k.c;
 }
 function makeTable() {
-  const [c, g] = makeCanvas(32, 22);
+  const k = makeCanvas(32, 22), g = k.g;
   R(g, '#202020', 0, 4, 32, 12); R(g, '#c88848', 1, 5, 30, 10); R(g, '#e0a868', 1, 5, 30, 2);
   R(g, '#6a4020', 2, 15, 3, 7); R(g, '#6a4020', 27, 15, 3, 7);
   R(g, '#f05a1e', 5, 0, 6, 7); R(g, '#58a0e0', 14, 1, 7, 6); R(g, '#f8d048', 24, 2, 4, 5);
-  return c;
+  return k.c;
 }
 function makePlant() {
-  const [c, g] = makeCanvas(16, 20);
+  const k = makeCanvas(16, 20), g = k.g;
   R(g, '#1f5a38', 2, 2, 12, 11); R(g, '#2f8a4f', 3, 3, 10, 9); R(g, '#4fae62', 4, 4, 4, 3);
   R(g, '#202020', 4, 12, 8, 8); R(g, '#c86838', 5, 13, 6, 6);
-  return c;
+  return k.c;
+}
+// 쌓인 타이어 (2짝씩 두 무더기)
+function makeTireStack(off) {
+  const k = makeCanvas(17, 20), g = k.g;
+  let topX = 0;
+  for (let n = 0; n < 2; n++) {
+    const y = 14 - n * 6, x = (n === 1) ? off : 0;                  // 위쪽 타이어는 살짝 어긋나게
+    R(g, '#0c0c0e', x, y, 16, 6); R(g, '#202024', x + 1, y + 1, 14, 4); R(g, '#2e2e34', x + 1, y + 1, 14, 1);
+    for (let i = 2 + ((n + off) % 2); i < 14; i += 3) R(g, '#3a3a40', x + i, y + 2, 1, 3);
+    topX = x;
+  }
+  R(g, '#0c0c0e', topX, 3, 16, 7); R(g, '#28282c', topX + 1, 4, 14, 5); R(g, '#3e3e44', topX + 1, 4, 14, 1);
+  R(g, '#050506', topX + 4, 5, 8, 3);
+  return k.c;
+}
+function makeTires() { return [makeTireStack(0), makeTireStack(1)]; }
+// 바베큐 그릴 + 고기
+function makeGrill() {
+  const k = makeCanvas(32, 26), g = k.g;
+  R(g, '#202020', 3, 14, 2, 12); R(g, '#202020', 27, 14, 2, 12); R(g, '#202020', 3, 23, 26, 1);
+  R(g, '#202020', 0, 6, 32, 10); R(g, '#3a3a3c', 1, 7, 30, 8); R(g, '#5a5a5e', 1, 14, 30, 1);
+  R(g, '#5a1a10', 2, 8, 28, 4);
+  for (let i = 2; i < 30; i += 3) R(g, '#9a9aa0', i, 7, 1, 6);
+  R(g, '#b0b0b4', 1, 7, 30, 1); R(g, '#b0b0b4', 1, 12, 30, 1);
+  pts('4,8 11,9 18,8 24,9').forEach(function (p) {
+    R(g, '#7a2a1a', p.x, p.y, 5, 3); R(g, '#c0604a', p.x, p.y, 5, 2);
+    R(g, '#f0d0b8', p.x + 1, p.y, 1, 2); R(g, '#3a1a10', p.x + 3, p.y, 1, 3);
+  });
+  R(g, '#c8c8cc', 28, 2, 1, 6); R(g, '#c8c8cc', 30, 1, 1, 7);
+  return k.c;
+}
+// 통나무 더미 + 꽂힌 도끼
+function makeLogPile() {
+  const k = makeCanvas(34, 34), g = k.g;
+  pts('2,24 12,24 22,24 7,16 17,16 12,8').forEach(function (p) {
+    const x = p.x, y = p.y;
+    R(g, '#3a2414', x + 1, y, 8, 10); R(g, '#3a2414', x, y + 1, 10, 8);
+    R(g, '#d8b07a', x + 1, y + 1, 8, 8); R(g, '#e8c890', x + 2, y + 2, 5, 4);
+    R(g, '#a87a48', x + 3, y + 3, 4, 4); R(g, '#d8b07a', x + 4, y + 4, 2, 2);
+  });
+  for (let i = 0; i < 11; i++) R(g, i < 1 ? '#3a2414' : '#a8743a', 18 + i, 7 - Math.round(i * 0.65), 2, 2);
+  R(g, '#2a2a2e', 13, 6, 7, 5); R(g, '#9aa2aa', 14, 7, 5, 3); R(g, '#e4e8ec', 14, 10, 5, 1);
+  return k.c;
+}
+// 자연에서 그대로 잘라낸 통나무 그루터기 의자 (크기를 다르게)
+function makeStump(wd, sideH, seed) {
+  const topH = Math.round(wd * 0.55), H = topH + sideH + 1;
+  const k = makeCanvas(wd, H), g = k.g;
+  const rx = wd / 2, ry = topH / 2;
+  function inTop(x, y) { const nx = (x + 0.5 - rx) / rx, ny = (y + 0.5 - ry) / ry; return nx * nx + ny * ny <= 1; }
+  function inBot(x, y) { const nx = (x + 0.5 - rx) / rx, ny = (y + 0.5 - ry - sideH) / ry; return nx * nx + ny * ny <= 1; }
+  function inside(x, y) {
+    if (x < 0 || y < 0 || x >= wd || y >= H) return false;
+    if (inTop(x, y) || inBot(x, y)) return true;
+    const nx = (x + 0.5 - rx) / rx;
+    return y >= ry && y <= ry + sideH && nx * nx <= 1;
+  }
+  for (let y = 0; y < H; y++) for (let x = 0; x < wd; x++) {
+    if (!inside(x, y)) continue;
+    if (!inside(x - 1, y) || !inside(x + 1, y) || !inside(x, y - 1) || !inside(x, y + 1)) { R(g, '#3a2414', x, y); continue; }
+    const nx = (x + 0.5 - rx) / rx;
+    if (inTop(x, y)) {
+      const ny = (y + 0.5 - ry) / ry, d = Math.sqrt(nx * nx + ny * ny);
+      let c = '#d8b07a';
+      if (!inTop(x, y + 1)) c = '#a07040';
+      else if (d > 0.8) c = '#b88a52';
+      else if (Math.abs(d - 0.5) < 0.11) c = '#a87a48';
+      else if (d < 0.17) c = '#a87a48';
+      else if (nx < -0.2 && ny < -0.2) c = '#e8c890';
+      R(g, c, x, y);
+    } else {
+      let c = '#6a4424';
+      if (nx < -0.5) c = '#8a5a30'; else if (nx > 0.55) c = '#503018';
+      if (((x * 5 + seed * 3) % 4) === 0 && y > ry + 1) c = '#4e3018';
+      R(g, c, x, y);
+    }
+  }
+  return k.c;
+}
+// 꼬챙이에 끼운 마시멜로 (바닥에 꽂힘)
+function makeMarsh(d) {
+  const k = makeCanvas(9, 18), g = k.g;
+  const sx = function (h) { return 4 + d * Math.round(h * 0.12); };
+  R(g, '#5a4028', sx(0) - 1, 17, 3, 1);
+  for (let h = 0; h < 15; h++) { R(g, '#a8743a', sx(h), 16 - h, 1, 1); R(g, '#5a3418', sx(h) + 1, 16 - h, 1, 1); }
+  [1, 5].forEach(function (y, j) {
+    const xc = sx(17 - (y + 2));
+    R(g, '#fffaf2', xc - 2, y, 5, 4); R(g, '#e6d6c2', xc - 2, y + 3, 5, 1); R(g, '#e6d6c2', xc + 2, y, 1, 4);
+    if (j === 0) { R(g, '#d89848', xc - 2, y, 5, 2); R(g, '#b8742a', xc - 1, y, 3, 1); }   // 불 쪽이 노릇하게 구워짐
+  });
+  return k.c;
+}
+// 도끼가 꽂힌 그루터기
+function makeAxeStump() {
+  const k = makeCanvas(20, 30), g = k.g;
+  g.drawImage(makeStump(13, 7, 2), 0, 15);
+  for (let i = 0; i < 14; i++) {
+    const x = 7 + Math.round(i * 0.55), y = 17 - i;
+    const grip = (i % 3 === 1);                                                   // 주황색 고무 손잡이 (미끄럼 방지 홈)
+    R(g, '#4a2410', x - 1, y, 1, 1); R(g, '#4a2410', x + 2, y, 1, 1);
+    R(g, grip ? '#b84008' : '#ff8a30', x, y, 1, 1); R(g, grip ? '#b84008' : '#f06a1a', x + 1, y, 1, 1);
+    if (i === 13) R(g, '#2a2a2e', x, y - 1, 2, 1);
+  }
+  R(g, '#2a2a2e', 3, 16, 7, 6); R(g, '#9aa2aa', 4, 17, 5, 4); R(g, '#e4e8ec', 4, 20, 5, 1);
+  return k.c;
+}
+// 눕혀진 대나무
+function makeLyingBamboo(len, th, v) {
+  const sl = [0.05, 0.03, 0.06][v % 3], k = makeCanvas(len, th + 5 + Math.ceil(len * sl)), g = k.g;
+  const col = ['#8fae6a', '#a6bd78', '#7a9a58'][v % 3];
+  const yy = function (x) { return 2 + Math.round(x * sl); };
+  for (let x = 0; x < len; x++) {
+    const y = yy(x);
+    R(g, '#2e4026', x, y + th, 1, 1); R(g, col, x, y, 1, th); R(g, '#c8d49c', x, y, 1, 1);
+    if (x % 11 === (v * 4) % 11) { R(g, '#eef0d0', x, y - 1, 1, th + 2); R(g, '#4a5e36', x + 1, y, 1, th); }
+  }
+  R(g, '#2e4026', 0, yy(0), 1, th); R(g, '#2e4026', len - 1, yy(len - 1), 1, th);
+  const leaf = ['#2f6a3a', '#4a8a44', '#6aa858'];
+  for (let i = 0; i < 5; i++) { const x = len - 9 + i * 2, y = yy(x) + th; R(g, leaf[i % 3], x, y + (i % 2), 3, 1); }
+  return k.c;
+}
+// 통나무 의자 (가로 / 세로)
+function makeLogH() {
+  const k = makeCanvas(26, 11), g = k.g;
+  R(g, '#3a2414', 0, 1, 24, 9); R(g, '#6a4424', 1, 2, 22, 7); R(g, '#8a5a30', 1, 2, 22, 2);
+  for (let i = 3; i < 20; i += 5) R(g, '#4e3018', i, 5, 3, 1);
+  R(g, '#3a2414', 20, 0, 6, 11); R(g, '#d8b07a', 21, 1, 4, 9); R(g, '#a87a48', 22, 4, 2, 3);
+  return k.c;
+}
+function makeLogV() {
+  const k = makeCanvas(12, 28), g = k.g;
+  R(g, '#3a2414', 1, 0, 10, 24); R(g, '#6a4424', 2, 1, 8, 22); R(g, '#8a5a30', 2, 1, 2, 22);
+  for (let i = 4; i < 20; i += 5) R(g, '#4e3018', 6, i, 1, 3);
+  R(g, '#3a2414', 0, 20, 12, 8); R(g, '#d8b07a', 1, 21, 10, 6); R(g, '#a87a48', 4, 23, 4, 2);
+  return k.c;
+}
+// '구두미 포구' 비석 (세로 글씨를 픽셀로 직접 새김)
+const KO = {
+  '구': '#######|......#|......#|.......|#######|...#...|...#...',
+  '두': '######.|#......|######.|.......|#######|...#...|...#...',
+  '미': '####..#|#..#..#|#..#..#|####..#|......#|......#|......#',
+  '포': '#######|.#...#.|.#...#.|#######|.......|...#...|#######'
+};
+function makeMonument() {
+  // 세로로 긴 자연석에 '구두미 포구'를 새기고, 글씨 아래쪽은 흰색으로 칠한 비석
+  const W = 18, H = 58, BODY = 55, cx = 9;
+  const k = makeCanvas(W, H), g = k.g;
+  const LINE = '#18181c', STONE = '#7c7a72', HI = '#98968c', SH = '#62605a';
+  const L = [], RR = [];
+  const TOP = [3, 5, 6, 6.3];
+  for (let y = 0; y < BODY; y++) {
+    const t = y / BODY;
+    let hw = (y < 4) ? TOP[y] : 6.4 + 1.2 * Math.sin(Math.PI * Math.pow(t, 0.9)) + 0.9 * t * t + 0.3 * Math.sin(y * 0.7);
+    const c = cx + ((y < 4) ? 0 : 0.8 * Math.sin(y * 0.09 + 0.6));
+    L.push(Math.max(0, Math.round(c - hw))); RR.push(Math.min(W - 1, Math.round(c + hw - 1)));
+  }
+  for (let y = 1; y < BODY - 1; y++) {            // 튀어나온 점 하나 정리
+    if (RR[y] > RR[y - 1] && RR[y] > RR[y + 1]) RR[y] = Math.max(RR[y - 1], RR[y + 1]);
+    if (L[y] < L[y - 1] && L[y] < L[y + 1]) L[y] = Math.min(L[y - 1], L[y + 1]);
+  }
+  for (let y = 0; y < BODY; y++) R(g, LINE, L[y], y, RR[y] - L[y] + 1, 1);
+  const inner = [];
+  for (let y = 1; y < BODY; y++) {
+    const a = Math.max(L[y], L[y - 1]) + 1, b = Math.min(RR[y], RR[y - 1]) - 1;
+    inner[y] = [a, b];
+    if (b < a) continue;
+    R(g, STONE, a, y, b - a + 1, 1);
+    R(g, HI, a, y, 2, 1);
+    R(g, SH, b - 1, y, 2, 1);
+  }
+  for (let i = 0; i < 26; i++) {
+    const h = hsh(i, 11), x = 3 + h % 12, y = 3 + (h >>> 6) % 48, r = inner[y];
+    if (r && x >= r[0] + 2 && x <= r[1] - 2) R(g, (i % 2) ? '#6c6a62' : '#8c8a80', x, y, 1, 1);
+  }
+  // 새긴 글씨
+  let y = 5, yEnd = 0;
+  ['구', '두', '미', ' ', '포', '구'].forEach(function (ch) {
+    if (ch === ' ') { y += 2; return; }
+    const rows = KO[ch].split('|');
+    rows.forEach(function (row, j) {
+      for (let i = 0; i < row.length; i++) if (row.charAt(i) === '#') R(g, '#c8c6ba', cx - 3 + i, y + j + 1);
+    });
+    rows.forEach(function (row, j) {
+      for (let i = 0; i < row.length; i++) if (row.charAt(i) === '#') R(g, '#26262a', cx - 4 + i, y + j);
+    });
+    yEnd = y + 7;
+    y += 8;
+  });
+  // 땅에 박힌 부분
+  R(g, LINE, 2, BODY, 14, 1); R(g, LINE, 1, BODY + 1, 16, 2);
+  R(g, '#4a4a52', 3, BODY + 1, 3, 1); R(g, '#4a4a52', 11, BODY + 1, 4, 1);
+  return k.c;
 }
 const IMG = {
-  house: makeHouse(), tree: makeTree(), tentA: makeTent('#f08040', '#d06028'), tentB: makeTent('#48a8a0', '#2f8880'),
-  stall: makeStall(), sign: makeSign(), insta: makeInstaBoard(), mailbox: makeMailbox(), lamp: makeLamp(),
-  pc: makePC(), shelf: makeShelf(), table: makeTable(), plant: makePlant()
+  house: makeHouse(), tree: makeTree(), stall: makeStall(), sign: makeSign(), insta: makeInstaBoard(),
+  mailbox: makeMailbox(), lamp: makeLamp(), pc: makePC(), shelf: makeShelf(), table: makeTable(), plant: makePlant(),
+  bamboo: [makeBamboo(0), makeBamboo(1), makeBamboo(2)], tires: makeTires(), grill: makeGrill(),
+  logPile: makeLogPile(), logH: makeLogH(), logV: makeLogV(), monument: makeMonument(),
+  stumps: [makeStump(14, 7, 1), makeStump(11, 5, 2), makeStump(12, 6, 3), makeStump(9, 5, 4), makeStump(13, 8, 5)],
+  axeStump: makeAxeStump(), marsh: [makeMarsh(1), makeMarsh(-1)], bambooLie: [makeLyingBamboo(46, 4, 0), makeLyingBamboo(38, 3, 1), makeLyingBamboo(30, 3, 2)]
 };
 $('logo').getContext('2d').drawImage(IMG.house, 0, 0);
 
-// 액자 썸네일용 이미지 미리 불러오기
 const THUMB = {};
-for (const [k, a] of Object.entries(ARCHIVE)) if (a.images[0]) { const im = new Image(); im.src = a.images[0]; THUMB[k] = im; }
-
-function drawFire(g, x, y, t) {
-  const f = (t * 8 | 0) % 2;
-  R(g, '#808080', x + 1, y + 13, 3, 2); R(g, '#808080', x + 12, y + 13, 3, 2);
-  R(g, '#6a4020', x + 2, y + 11, 12, 3); R(g, '#8a5a30', x + 4, y + 9, 8, 3);
-  R(g, '#f05a1e', x + 5, y + 4 + f, 6, 6 - f); R(g, '#f8b030', x + 6, y + 6, 4, 4);
-  R(g, '#fff0a0', x + 7, y + 8, 2, 2); R(g, '#f05a1e', x + 7, y + 2 + f * 2, 2, 2);
-}
+Object.keys(ARCHIVE).forEach(function (key) {
+  const a = ARCHIVE[key];
+  if (a.images.length) { const im = new Image(); im.src = a.images[0]; THUMB[key] = im; }
+});
 function frameObj(tx, key, color) {
-  return { x: tx * 16, y: 16, base: 32, draw(g, x, y) {
+  return { x: tx * 16, y: 16, base: 32, draw: function (g, x, y) {
     R(g, '#202020', x + 1, y + 1, 14, 12); R(g, '#a06838', x + 2, y + 2, 12, 10);
     const im = THUMB[key];
     if (im && im.complete && im.naturalWidth) g.drawImage(im, x + 3, y + 3, 10, 8);
     else { R(g, color, x + 3, y + 3, 10, 8); R(g, '#ffffff', x + 5, y + 7, 3, 3); R(g, '#ffffff', x + 8, y + 5, 3, 5); }
-  }};
+  } };
+}
+
+/* ---------- 움직이는 오브젝트 ---------- */
+// 캠프파이어 (현무암 돌 + 불꽃 + 불티)
+function drawCampfire(g, x, y, t) {
+  const cx = x + 16, cy = y + 22;
+  function stones(front) {
+    for (let i = 0; i < 14; i++) {
+      const a = i / 14 * Math.PI * 2;
+      if ((Math.sin(a) > 0) !== front) continue;
+      const sx = Math.round(cx + Math.cos(a) * 13) - 2, sy = Math.round(cy + Math.sin(a) * 6) - 2;
+      R(g, '#1c1c20', sx, sy, 5, 4); R(g, '#3a3a40', sx + 1, sy, 3, 3); R(g, '#55555c', sx + 1, sy, 2, 1);
+    }
+  }
+  R(g, '#2a1a12', cx - 11, cy - 4, 22, 9);
+  stones(false);
+  R(g, '#3a2414', cx - 9, cy - 5, 18, 4); R(g, '#7a4c26', cx - 8, cy - 4, 16, 2);
+  R(g, '#3a2414', cx - 3, cy - 7, 6, 7); R(g, '#8a5a30', cx - 2, cy - 6, 4, 5);
+  for (let i = 0; i < 6; i++) if ((Math.floor(t * 7) + i) % 3) R(g, '#ff6a20', cx - 8 + i * 3, cy - 1, 2, 1);
+  const fh = 17 + Math.round(Math.sin(t * 11) * 2 + Math.sin(t * 17) * 1.5);
+  function layer(col, H, W) {
+    for (let r = 0; r < H; r++) {
+      const w = Math.max(1, Math.round(W * Math.sqrt(Math.max(0, 1 - r / H))));
+      const sway = Math.round(Math.sin(t * 9 + r * 0.45) * (r / H) * 2.5);
+      R(g, col, cx - Math.floor(w / 2) + sway, cy - 5 - r, w, 1);
+    }
+  }
+  layer('#e0401a', fh, 14);
+  layer('#f8902a', Math.round(fh * 0.72), 10);
+  layer('#ffe07a', Math.round(fh * 0.42), 5);
+  for (let n = 0; n < 6; n++) {
+    const p = (t * 0.7 + n / 6) % 1;
+    if (p > 0.92) continue;
+    R(g, p < 0.5 ? '#ffd27a' : '#ff7a2a', cx + Math.round(Math.sin(n * 2.3 + t * 1.7) * (3 + p * 6)), cy - 10 - Math.round(p * 34), 1, 1);
+  }
+  stones(true);
+}
+// 의자에 앉아 기타 치며 노래하는 빡빡이
+function drawSinger(g, x, y, t) {
+  const beat = Math.floor(t * 4) % 2, bob = Math.floor(t * 2) % 2;
+  R(g, '#202428', x + 1, y + 4, 14, 10); R(g, '#2f6f5a', x + 2, y + 5, 12, 8);
+  R(g, '#202428', x + 2, y + 17, 1, 5); R(g, '#202428', x + 13, y + 17, 1, 5);
+  R(g, '#202428', x + 1, y + 14, 14, 4); R(g, '#2f6f5a', x + 2, y + 15, 12, 2);
+  const hy = y + bob;
+  // 빡빡 민 머리: 머리카락 없이 매끈한 피부 + 반짝이는 정수리
+  const SK = '#f4c8a0', SKO = '#d89668', SKS = '#e4ac80';
+  R(g, SKO, x + 6, hy, 4, 1); R(g, SKO, x + 5, hy + 1, 1, 1); R(g, SKO, x + 10, hy + 1, 1, 1);
+  R(g, SKO, x + 4, hy + 2, 1, 6); R(g, SKO, x + 11, hy + 2, 1, 6); R(g, SKO, x + 5, hy + 8, 6, 1);
+  R(g, SK, x + 6, hy + 1, 4, 1); R(g, SK, x + 5, hy + 2, 6, 6);
+  R(g, SKS, x + 10, hy + 2, 1, 6);
+  R(g, '#ffffff', x + 6, hy + 1, 3, 1); R(g, '#fff6e8', x + 6, hy + 2, 2, 1); R(g, '#fff6e8', x + 6, hy + 3, 1, 1);
+  R(g, SKO, x + 3, hy + 4, 1, 3); R(g, SKS, x + 3, hy + 5, 1, 1); R(g, SKO, x + 12, hy + 4, 1, 3); R(g, SKS, x + 12, hy + 5, 1, 1);
+  R(g, '#7a4a30', x + 5, hy + 3, 2, 1); R(g, '#7a4a30', x + 9, hy + 3, 2, 1);
+  R(g, '#282830', x + 6, hy + 4, 1, 1); R(g, '#282830', x + 9, hy + 4, 1, 1);
+  R(g, '#a03830', x + 7, hy + 6, 2, beat ? 2 : 1);
+  R(g, '#282830', x + 3, y + 9, 10, 7); R(g, '#e8e4dc', x + 4, y + 9, 8, 6);
+  R(g, '#3a5a8c', x + 4, y + 15, 3, 5); R(g, '#3a5a8c', x + 9, y + 15, 3, 5);
+  R(g, '#282830', x + 4, y + 20, 3, 2); R(g, '#282830', x + 9, y + 20, 3, 2);
+  R(g, '#3a2010', x + 1, y + 11, 8, 6); R(g, '#c8803a', x + 2, y + 12, 6, 4); R(g, '#e0a050', x + 2, y + 12, 6, 1);
+  R(g, '#2a1a10', x + 4, y + 13, 2, 2);
+  R(g, '#5a3418', x + 8, y + 12, 7, 1); R(g, '#5a3418', x + 14, y + 11, 2, 2);
+  R(g, '#f0c098', x + 13, y + 11, 2, 2);
+  R(g, '#f0c098', x + 4 + beat, y + 11 + beat, 2, 2);
+  for (let n = 0; n < 2; n++) {
+    const p = (t * 0.5 + n * 0.5) % 1;
+    if (p > 0.9) continue;
+    const nx = x + 12 + n * 3 + Math.round(Math.sin(t * 3 + n) * 2), ny = y - 2 - Math.round(p * 16);
+    g.globalAlpha = 1 - p;
+    R(g, '#fff4d0', nx, ny, 2, 2); R(g, '#fff4d0', nx + 1, ny - 4, 1, 4); R(g, '#fff4d0', nx + 2, ny - 4, 2, 1);
+    g.globalAlpha = 1;
+  }
+}
+// 그릴 숯불 + 연기
+function drawGrill(g, x, y, t) {
+  g.drawImage(IMG.grill, x, y);
+  for (let i = 0; i < 7; i++) if ((Math.floor(t * 6) + i * 2) % 3 === 0) R(g, '#ff7a2a', x + 3 + i * 4, y + 11, 2, 1);
+  for (let n = 0; n < 4; n++) {
+    const p = (t * 0.35 + n / 4) % 1, s = 3 + Math.round(p * 4);
+    g.fillStyle = 'rgba(220,220,225,' + (0.45 * (1 - p)).toFixed(2) + ')';
+    g.fillRect(x + 8 + n * 4 + Math.round(Math.sin(t * 1.5 + n) * 3 * p), y + 4 - Math.round(p * 26), s, s);
+  }
+}
+// 포구에 묶인 작은 보트
+function drawBoat(g, x, y, t) {
+  const b1 = Math.round(wave(t, 22 * 16 + 6) * 1.5), b2 = Math.round(wave(t, 22 * 16 + 40) * 1.5);
+  for (let i = 0; i < 36; i++) {
+    const off = Math.round(b1 + (b2 - b1) * i / 35);
+    let tp = 0;
+    if (i < 3) tp = 3 - i;
+    else if (i > 32) tp = i - 32;
+    const top = y + 2 + off + tp, bot = y + 13 + off;
+    R(g, '#202020', x + i, top, 1, bot - top + 1);
+    if (tp >= 3) continue;
+    R(g, (i % 11 === 5) ? '#6a4220' : '#9a6a36', x + i, top + 1, 1, 3);
+    R(g, '#f4f4f0', x + i, top + 4, 1, 3);
+    R(g, '#2f6fd0', x + i, top + 7, 1, 2);
+    if (bot - top - 9 > 0) R(g, '#c84030', x + i, top + 9, 1, bot - top - 9);
+  }
+  const wl = y + 11 + Math.round((b1 + b2) / 2);
+  g.fillStyle = 'rgba(64,178,176,0.85)';
+  g.fillRect(x - 2, wl, 40, 4);
+  for (let i = Math.floor(t * 6) % 4; i < 40; i += 4) R(g, '#effffb', x - 2 + i, wl, 2, 1);
+  const sx = 5 * 16 + 11 - cam.x, sy = 21 * 16 + 4 - cam.y, ex = x + 1, ey = y + 5 + b1, n = Math.max(1, ex - sx);
+  for (let s = 0; s <= n; s++) R(g, '#e8dcb0', sx + s, Math.round(sy + (ey - sy) * s / n + Math.sin(Math.PI * s / n) * 2), 1, 1);
+}
+// 튜브 끼고 떠 있는 사람 (밤에는 사라짐)
+function drawTube(g, x, y, t) {
+  if (phase() === 'night') return;
+  const b = Math.round(wave(t, 19 * 16 + 8) * 1.5);
+  x += Math.round(Math.sin(t * 0.45) * 3);
+  const rp = Math.floor(t * 2) % 2;
+  R(g, '#d8f6f0', x - rp, y + 15, 16 + rp * 2, 1);
+  y += b;
+  R(g, '#282830', x + 4, y + 1, 8, 8); R(g, '#3a2a20', x + 5, y + 2, 6, 3);
+  R(g, '#f0c098', x + 5, y + 4, 6, 4); R(g, '#282830', x + 6, y + 5, 1, 1); R(g, '#282830', x + 9, y + 5, 1, 1);
+  R(g, '#f0c098', x + 3, y + 8, 10, 3);
+  R(g, '#282830', x, y + 9, 16, 6); R(g, '#f05a6a', x + 1, y + 10, 14, 4);
+  R(g, '#ffffff', x + 2, y + 10, 2, 4); R(g, '#ffffff', x + 7, y + 10, 2, 4); R(g, '#ffffff', x + 12, y + 10, 2, 4);
+  R(g, '#ff9aa4', x + 1, y + 10, 14, 1);
+  R(g, '#f0c098', x + 1, y + 9, 2, 2); R(g, '#f0c098', x + 13, y + 9, 2, 2);
 }
 
 /* =========================================================
-   5. 맵
+   5. 맵 (격자는 1줄 배열로 저장)
    ========================================================= */
-const grid = (w, h, c) => Array.from({ length: h }, () => Array(w).fill(c));
-const fill = (m, x, y, w, h, c) => { for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (m[j] && m[j][i] !== undefined) m[j][i] = c; };
-const WALK = new Set(['.', 'p', 'f', 'D', 'o', 'r', 'E']);
+function mkGrid(w, h, c) { const a = []; for (let i = 0; i < w * h; i++) a.push(c); return { w: w, h: h, a: a }; }
+function gget(m, x, y) { if (x < 0 || y < 0 || x >= m.w || y >= m.h) return ''; return m.a[y * m.w + x]; }
+function gset(m, x, y, c) { if (x < 0 || y < 0 || x >= m.w || y >= m.h) return; m.a[y * m.w + x] = c; }
+function fill(m, x, y, w, h, c) { for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) gset(m, i, j, c); }
+function setList(m, s, c) { pts(s).forEach(function (p) { gset(m, p.x, p.y, c); }); }
+// 지나갈 수 있는 타일: . 잔디 / p 길 / f 꽃 / D 집 문 / G 대나무숲 입구 / q 선창 / o r E 집 안 / l Q 숲 안
+const WALK = ['.', 'p', 'f', 'D', 'G', 'q', 'o', 'r', 'E', 'l', 'Q'];
 
 function grassTile(g, X, Y, tx, ty) {
   R(g, '#78c878', X, Y, 16, 16);
   const h = hsh(tx, ty);
   for (let i = 0; i < 3; i++) {
-    const ax = X + (h >> (i * 5)) % 13 + 1, ay = Y + (h >> (i * 5 + 3)) % 12 + 2;
+    const ax = X + ((h >>> (i * 5)) % 13) + 1, ay = Y + ((h >>> (i * 5 + 3)) % 12) + 2;
     R(g, '#58a860', ax, ay, 1, 2); R(g, '#58a860', ax + 2, ay + 1); R(g, '#a0e0a0', ax + 1, ay - 1);
   }
 }
 function buildGround(map) {
-  const { w, h, grid: m } = map;
-  const [c, g] = makeCanvas(w * 16, h * 16);
-  const at = (x, y) => (m[y] && m[y][x]) || '';
+  const w = map.w, h = map.h, m = map.grid;
+  const k = makeCanvas(w * 16, h * 16), g = k.g;
+  function at(x, y) { return gget(m, x, y); }
+  const SEA = ['#7ad8cc', '#54c4ba', '#40b2b0', '#349ea8', '#2c8ea0', '#287f98'];
+  function rock(X, Y, hh) {
+    R(g, '#1c1c20', X + 1, Y + 2, 14, 13); R(g, '#1c1c20', X + 2, Y + 1, 12, 15);
+    R(g, '#3a3a40', X + 2, Y + 2, 12, 12); R(g, '#52525a', X + 3, Y + 3, 6, 2);
+    for (let i = 0; i < 4; i++) R(g, '#18181c', X + 3 + ((hh >>> (i * 3)) % 9), Y + 6 + ((hh >>> (i * 4)) % 6), 2, 1);
+  }
+  function litter(X, Y, hh, base) {
+    R(g, base, X, Y, 16, 16);
+    const cols = ['#b8935e', '#6a4c2a', '#c8a870'];
+    for (let i = 0; i < 7; i++) R(g, cols[i % 3], X + ((hh >>> (i * 4)) & 15), Y + ((hh >>> (i * 4 + 2)) & 15), (i % 2) ? 3 : 2, 1);
+  }
+  function isPath(x, y) { const v = at(x, y); return v === 'p' || v === 'D' || v === 'G'; }
+  function isSea(x, y) { const v = at(x, y); return v === 'S' || (v === 'k' && y >= 20); }
   for (let ty = 0; ty < h; ty++) for (let tx = 0; tx < w; tx++) {
-    const ch = m[ty][tx], X = tx * 16, Y = ty * 16, hh = hsh(tx, ty);
+    const ch = at(tx, ty), X = tx * 16, Y = ty * 16, hh = hsh(tx, ty);
     if (map.id === 'town') {
-      if (ch === 'M') R(g, '#a8d8f8', X, Y, 16, 16);
-      else if (ch === 'p' || ch === 'D') {
-        R(g, '#e8d098', X, Y, 16, 16); R(g, '#d8b878', X + hh % 13, Y + (hh >> 4) % 13, 2, 1);
-        const isP = (x, y) => ['p', 'D'].includes(at(x, y));
-        if (!isP(tx, ty - 1)) R(g, '#c8a868', X, Y, 16, 2);
-        if (!isP(tx, ty + 1)) R(g, '#c8a868', X, Y + 14, 16, 2);
-        if (!isP(tx - 1, ty)) R(g, '#c8a868', X, Y, 2, 16);
-        if (!isP(tx + 1, ty)) R(g, '#c8a868', X + 14, Y, 2, 16);
-      } else if (ch === 'w') {
-        R(g, '#58a8e8', X, Y, 16, 16);
-        R(g, '#90c8f8', X + 2 + hh % 6, Y + 4, 4, 1); R(g, '#90c8f8', X + 8 - hh % 4, Y + 11, 5, 1);
-        if (at(tx, ty - 1) !== 'w') { R(g, '#f0e8c0', X, Y, 16, 2); R(g, '#3c88c8', X, Y + 2, 16, 1); }
-        if (at(tx, ty + 1) !== 'w') R(g, '#f0e8c0', X, Y + 14, 16, 2);
-        if (at(tx - 1, ty) !== 'w') R(g, '#f0e8c0', X, Y, 2, 16);
-        if (at(tx + 1, ty) !== 'w') R(g, '#f0e8c0', X + 14, Y, 2, 16);
+      if (ch === 'M') {
+        R(g, '#a8d8f8', X, Y, 16, 16);
+      } else if (ch === 'p' || ch === 'D') {
+        R(g, '#e8d098', X, Y, 16, 16); R(g, '#d8b878', X + hh % 13, Y + (hh >>> 4) % 13, 2, 1);
+        if (!isPath(tx, ty - 1)) R(g, '#c8a868', X, Y, 16, 2);
+        if (!isPath(tx, ty + 1)) R(g, '#c8a868', X, Y + 14, 16, 2);
+        if (!isPath(tx - 1, ty)) R(g, '#c8a868', X, Y, 2, 16);
+        if (!isPath(tx + 1, ty)) R(g, '#c8a868', X + 14, Y, 2, 16);
+      } else if (isSea(tx, ty)) {
+        R(g, SEA[Math.min(5, Math.max(0, ty - 20))], X, Y, 16, 16);
+        R(g, 'rgba(255,255,255,0.12)', X + hh % 13, Y + (hh >>> 4) % 13, 3, 1);
+        if (ch === 'k') rock(X, Y, hh);
+      } else if (ch === 'q' || ch === 'k') {
+        // 거친 진회색 콘크리트 바닥
+        R(g, '#76767a', X, Y, 16, 16);
+        for (let i = 0; i < 22; i++) {
+          const a = hsh(tx * 31 + i * 7, ty * 17 + i * 3), px = X + (a % 16), py = Y + ((a >>> 5) % 16);
+          const c = (i % 3 === 0) ? '#8c8c90' : (i % 3 === 1) ? '#5e5e62' : '#82828a';
+          R(g, c, px, py, ((a >>> 11) % 4 === 0) ? 2 : 1, ((a >>> 13) % 5 === 0) ? 2 : 1);
+        }
+        for (let i = 0; i < 3; i++) { const a = hsh(tx * 5 + i * 11, ty * 9 + i); R(g, '#686a6e', X + (a % 13), Y + ((a >>> 4) % 13), 3, 2); }
+        if ((hh >>> 9) % 4 === 0) {                      // 갈라진 금
+          const cx = X + 2 + (hh % 7), cy = Y + 3 + ((hh >>> 3) % 8);
+          for (let j = 0; j < 8; j++) R(g, '#46464a', cx + j, cy + ((j >> 1) % 2) + (j > 4 ? 1 : 0), 1, 1);
+        }
+        R(g, '#626266', X, Y + 15, 16, 1); R(g, '#626266', X + 15, Y, 1, 16);       // 콘크리트 이음매
+        if (at(tx, ty - 1) !== 'q' && at(tx, ty - 1) !== 'k') R(g, '#9a9a9e', X, Y, 16, 1);
+        if (ch === 'q' && ty === 23 && isSea(tx, ty + 1)) { R(g, '#5e5e62', X, Y + 4, 16, 2); R(g, '#505054', X, Y + 8, 16, 2); }
+        if (isSea(tx, ty + 1)) { R(g, '#47474b', X, Y + 12, 16, 4); R(g, '#3a3a3e', X, Y + 12, 16, 1); R(g, '#5a7a44', X, Y + 15, 16, 1); }
+        if (at(tx - 1, ty) === 'S') R(g, '#47474b', X, Y, 2, 16);
+        if (at(tx + 1, ty) === 'S') R(g, '#47474b', X + 14, Y, 2, 16);
+        if (ch === 'k') rock(X, Y, hh);
+      } else if (ch === 'B') {
+        R(g, '#22301c', X, Y, 16, 16); R(g, '#2e3e24', X + hh % 12, Y + (hh >>> 4) % 12, 3, 1);
+      } else if (ch === 'G') {
+        R(g, '#3a2e1c', X, Y, 16, 16); R(g, '#1a140c', X, Y, 16, 6); R(g, '#241c10', X, Y + 6, 16, 3);
+        R(g, '#6a5434', X + 3 + hh % 8, Y + 10, 3, 1); R(g, '#7a6040', X + 9, Y + 13, 2, 1);
       } else {
         grassTile(g, X, Y, tx, ty);
-        if (ch === 'f') [[3, 3], [10, 9]].forEach(([fx, fy]) => {
-          R(g, '#f07848', X + fx, Y + fy + 1, 3, 1); R(g, '#f07848', X + fx + 1, Y + fy, 1, 3); R(g, '#f8e070', X + fx + 1, Y + fy + 1);
-        });
+        if (ch === 'f') {
+          R(g, '#f07848', X + 3, Y + 4, 3, 1); R(g, '#f07848', X + 4, Y + 3, 1, 3); R(g, '#f8e070', X + 4, Y + 4);
+          R(g, '#f07848', X + 10, Y + 10, 3, 1); R(g, '#f07848', X + 11, Y + 9, 1, 3); R(g, '#f8e070', X + 11, Y + 10);
+        }
+      }
+    } else if (map.id === 'bamboo') {
+      if (ch === 'B') {
+        R(g, '#1a2414', X, Y, 16, 16); R(g, '#3a3020', X + hh % 12, Y + (hh >>> 4) % 12, 3, 1);
+      } else {
+        litter(X, Y, hh, Math.hypot(tx + 0.5 - 9, ty + 0.5 - 9) < 3.4 ? '#a08058' : '#8a6a40');
+        if (ch === 'Q') R(g, 'rgba(0,0,0,0.35)', X, Y, 16, 16);
       }
     } else {
       if (ch === 'W') {
@@ -403,54 +833,72 @@ function buildGround(map) {
         if (at(tx + 1, ty) !== 'r') R(g, '#fff0d8', X + 13, Y, 2, 16);
       } else {
         R(g, '#d8a468', X, Y, 16, 16); R(g, '#c08850', X, Y + 7, 16, 1); R(g, '#c08850', X, Y + 15, 16, 1);
-        R(g, '#c08850', X + (tx % 2 ? 4 : 11), Y, 1, 7); R(g, '#c08850', X + (tx % 2 ? 12 : 3), Y + 8, 1, 7);
+        R(g, '#c08850', X + ((tx % 2) ? 4 : 11), Y, 1, 7); R(g, '#c08850', X + ((tx % 2) ? 12 : 3), Y + 8, 1, 7);
         if (ch === 'E') { R(g, '#58a070', X + 1, Y + 2, 14, 12); R(g, '#88c898', X + 3, Y + 5, 10, 1); R(g, '#88c898', X + 3, Y + 9, 10, 1); }
       }
     }
   }
   if (map.id === 'town') {
-    // 한라산 (넓은 방패형 산 + 백록담 분화구)
+    // 한라산
     const cx = w * 8, top = 12, bot = 80;
     for (let y = top; y < bot; y++) {
-      const t = (y - top) / (bot - top), half = Math.round(46 + 200 * Math.pow(t, 1.7));
+      const tt = (y - top) / (bot - top), half = Math.round(46 + 200 * Math.pow(tt, 1.7));
       R(g, '#3d7a55', cx - half, y, half * 2, 1); R(g, '#4f9466', cx - half, y, Math.round(half * 1.2), 1);
       if (y < top + 14) { R(g, '#8f9c8c', cx - half, y, half * 2, 1); R(g, '#a8b4a4', cx - half, y, Math.round(half * 0.9), 1); }
     }
     R(g, '#6f7c6c', cx - 24, top, 48, 2); R(g, '#e8eef0', cx - 40, top + 3, 24, 1); R(g, '#e8eef0', cx + 12, top + 4, 20, 1);
-    [[40, 18], [w * 16 - 90, 26]].forEach(([x, y]) => { R(g, '#ffffff', x, y + 4, 28, 6); R(g, '#ffffff', x + 6, y, 14, 6); R(g, '#e0eef8', x, y + 9, 28, 1); });
+    // 구름
+    R(g, '#ffffff', 40, 22, 28, 6); R(g, '#ffffff', 46, 18, 14, 6); R(g, '#e0eef8', 40, 27, 28, 1);
+    const c2 = w * 16 - 90;
+    R(g, '#ffffff', c2, 30, 28, 6); R(g, '#ffffff', c2 + 6, 26, 14, 6); R(g, '#e0eef8', c2, 35, 28, 1);
+    // 계류 기둥
+    function bollard(bx, by) { R(g, '#141416', bx, by, 6, 3); R(g, '#2a2a2e', bx + 1, by + 2, 4, 5); R(g, '#4a4a52', bx + 1, by, 2, 1); }
+    bollard(5 * 16 + 9, 21 * 16 + 2); bollard(6 * 16 + 5, 19 * 16 + 3);
   }
-  return c;
+  return k.c;
 }
 
-function npc(x, y, spr, lines) {
-  return { x, y, px: x * 16, py: y * 16, nx: x, ny: y, dir: 'down', moving: false, t: 0, flip: false,
-           home: { x, y }, timer: 1 + Math.random() * 2, spr, lines, talking: false };
+function npc(x, y, spr, lines, opts) {
+  opts = opts || {};
+  const dir = opts.dir || 'down';
+  return { x: x, y: y, px: x * 16, py: y * 16, nx: x, ny: y, dir: dir, baseDir: dir, stay: !!opts.stay,
+           moving: false, t: 0, flip: false, home: { x: x, y: y }, timer: 1 + Math.random() * 2,
+           spr: spr, lines: lines, talking: false };
 }
 
 function buildTown() {
-  const W = 32, H = 26, m = grid(W, H, '.');
-  fill(m, 0, 0, W, 5, 'M');                         // 하늘 + 한라산
-  fill(m, 0, 5, W, 1, 'T');                         // 산 아래 나무줄
-  fill(m, 0, 5, 2, H - 5, 'T'); fill(m, W - 2, 5, 2, H - 5, 'T'); fill(m, 0, H - 2, W, 2, 'T');
-  fill(m, 9, 5, 2, 10, 'p');                        // 등산로
-  fill(m, 2, 14, W - 4, 2, 'p');                    // 큰길
-  fill(m, 15, 13, 2, 1, 'p'); fill(m, 15, 16, 2, 8, 'p');
+  const W = 32, H = 26, m = mkGrid(W, H, '.');
+  fill(m, 0, 0, W, 5, 'M');                            // 하늘 + 한라산
+  fill(m, 0, 5, W, 1, 'T');                            // 산 아래 나무줄
+  fill(m, 0, 5, 2, 13, 'T'); fill(m, W - 2, 5, 2, 13, 'T');
+  fill(m, 2, 3, 6, 6, 'B');                            // 대나무숲 (딱 정사각형, 한라산 바로 앞)
+  gset(m, 5, 8, 'G'); fill(m, 5, 9, 1, 5, 'p');        // 대나무숲 입구 + 큰길로 내려오는 길
+  fill(m, 9, 5, 2, 10, 'p');                           // 등산로
+  fill(m, 2, 14, W - 4, 2, 'p');                       // 큰길
+  fill(m, 15, 13, 2, 1, 'p'); fill(m, 15, 16, 2, 2, 'p');   // 포구로 내려가는 길
   fill(m, 3, 16, 4, 2, 'f'); fill(m, 21, 17, 3, 1, 'f'); fill(m, 12, 6, 3, 1, 'f'); fill(m, 20, 7, 2, 2, 'f');
-  fill(m, 3, 19, 6, 4, 'w');                        // 연못
-  fill(m, 24, 19, 4, 3, 'T'); fill(m, 27, 6, 3, 2, 'T');
-  fill(m, 13, 9, 6, 4, 'X'); m[12][15] = 'D'; m[12][16] = 'D';   // 집 + 문
-  fill(m, 3, 9, 2, 2, 'X'); fill(m, 6, 9, 2, 2, 'X'); m[12][5] = 'X'; // 텐트 · 모닥불
-  fill(m, 23, 10, 4, 2, 'X');                       // 굿즈 가판대
-  [[14, 13], [19, 12], [21, 13], [11, 6], [12, 16], [19, 16]].forEach(([x, y]) => m[y][x] = 'X');
+  fill(m, 27, 6, 3, 2, 'T');
+  // 구두미 포구
+  fill(m, 0, 18, 14, 2, 'q');                          // 선창 (바다 위쪽, 왼쪽만)
+  fill(m, 0, 18, 2, 2, 'k');
+  fill(m, 0, 20, 14, H - 20, 'q');                     // 포구 콘크리트 바닥 (바다 주변만)
+  fill(m, 0, 20, 12, H - 20, 'S');                     // 바다 (왼쪽 구석에만)
+  fill(m, 15, 18, 2, H - 18, 'p');                     // 큰길에서 아래로 이어지는 길
+  fill(m, 4, 20, 2, 4, 'q');                           // 선착장
+  setList(m, '0,20 1,20 2,20 3,20 2,21', 'k');
+  fill(m, 13, 9, 6, 4, 'X'); gset(m, 15, 12, 'D'); gset(m, 16, 12, 'D');   // 집 + 문
+  fill(m, 23, 10, 4, 2, 'X');                          // 굿즈 가판대
+  setList(m, '14,13 19,12 21,13 11,6 12,16 19,16 7,17', 'X');
 
-  const map = { id: 'town', w: W, h: H, grid: m };
+  const map = { id: 'town', w: W, h: H, grid: m, sea: true };
   map.ground = buildGround(map);
   const o = [];
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (m[y][x] === 'T') o.push({ img: IMG.tree, x: x * 16, y: y * 16 - 8, base: y * 16 + 16 });
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const v = gget(m, x, y);
+    if (v === 'T') o.push({ img: IMG.tree, x: x * 16, y: y * 16 - 8, base: y * 16 + 16 });
+    if (v === 'B') o.push({ img: IMG.bamboo[hsh(x, y) % 3], x: x * 16 - 1, y: y * 16 - 36, base: y * 16 + 16 });
+  }
   o.push({ img: IMG.house, x: 13 * 16, y: 13 * 16 - 98, base: 13 * 16 });
-  o.push({ img: IMG.tentA, x: 3 * 16, y: 11 * 16 - 28, base: 11 * 16 });
-  o.push({ img: IMG.tentB, x: 6 * 16, y: 11 * 16 - 28, base: 11 * 16 });
-  o.push({ draw: drawFire, x: 5 * 16, y: 12 * 16, base: 13 * 16 });
   o.push({ img: IMG.stall, x: 23 * 16, y: 12 * 16 - 44, base: 12 * 16 });
   o.push({ img: IMG.sign, x: 14 * 16, y: 13 * 16, base: 14 * 16 });
   o.push({ img: IMG.sign, x: 11 * 16, y: 6 * 16, base: 7 * 16 });
@@ -458,35 +906,40 @@ function buildTown() {
   o.push({ img: IMG.insta, x: 21 * 16, y: 13 * 16, base: 14 * 16 });
   o.push({ img: IMG.lamp, x: 12 * 16, y: 17 * 16 - 32, base: 17 * 16 });
   o.push({ img: IMG.lamp, x: 19 * 16, y: 17 * 16 - 32, base: 17 * 16 });
+  o.push({ img: IMG.monument, x: 7 * 16 + 8 - IMG.monument.width / 2, y: 18 * 16 - IMG.monument.height, base: 18 * 16 });
+  o.push({ draw: drawBoat, x: 6 * 16 + 6, y: 21 * 16 + 2, base: 22 * 16 + 16 });
+  o.push({ draw: drawTube, x: 3 * 16, y: 22 * 16 - 4, base: 22 * 16 + 16 });
   map.objects = o;
   map.acts = [
     { x: 9, y: 4, w: 2, h: 1, kind: 'archive', key: 'hallasan' },
     { x: 11, y: 6, w: 1, h: 1, kind: 'dialog', lines: ['↑ 한라산 등산로', '16명이서 다함께 올랐던 날의 기록이 이 길 끝에 있어요.'] },
-    { x: 3, y: 9, w: 2, h: 2, kind: 'archive', key: 'camp', up: 1 },
-    { x: 6, y: 9, w: 2, h: 2, kind: 'archive', key: 'camp', up: 1 },
-    { x: 5, y: 12, w: 1, h: 1, kind: 'archive', key: 'camp' },
-    { x: 23, y: 10, w: 4, h: 2, kind: 'archive', key: 'goods', up: 1 },
+    { x: 23, y: 10, w: 4, h: 1, kind: 'archive', key: 'goods', up: 1 },
     { x: 14, y: 13, w: 1, h: 1, kind: 'dialog', lines: ['머리 닿는 집', '김영수가 살면서, 사람들을 모아 캠프를 진행한 50년된 구옥.', '집 안에 들어가 기록들을 살펴보세요!'] },
     { x: 19, y: 12, w: 1, h: 1, kind: 'contact', up: 1 },
-    { x: 21, y: 13, w: 1, h: 1, kind: 'insta' }
+    { x: 21, y: 13, w: 1, h: 1, kind: 'insta' },
+    { x: 7, y: 17, w: 1, h: 1, kind: 'dialog', up: 3, lines: ['「구두미 포구」', '커다란 비석에 세로로 새겨져 있다.'] },
+    { x: 6, y: 21, w: 3, h: 2, kind: 'dialog', lines: ['밧줄에 묶인 작은 보트가 파도에 흔들리고 있다.'] },
+    { x: 3, y: 22, w: 1, h: 1, kind: 'talk', up: 1, cond: function () { return phase() !== 'night'; },
+      lines: ['물 진짜 맑다~ 둥둥…', '(튜브에 몸을 맡긴 채 파도를 타고 있다)'] }
   ];
   map.npcs = [
     npc(22, 18, SPR.npc1, ['안녕! 여긴 000 마을이야.', '김영수가 진행한 프로젝트들을 모아둔 마을이지.', '자유롭게 구경해 봐!']),
-    npc(7, 13, SPR.npc2, ['대나무 숲 안에 들어가봐. 숨섬쉼에서의 기록들이 있을 거야.', '이동할 때 Shift(모바일은 B)를 누르고 있으면 달릴 수 있어!'])
+    npc(6, 9, SPR.npc2, ['대나무 숲 안에 들어가봐. 숨섬쉼에서의 기록들이 있을 거야.', '이동할 때 Shift(모바일은 B)를 누르고 있으면 달릴 수 있어!'], { stay: true })
   ];
   map.lights = [
     { x: 12 * 16 + 8, y: 16 * 16 + 4, r: 44 }, { x: 19 * 16 + 8, y: 16 * 16 + 4, r: 44 },
-    { x: 5 * 16 + 8, y: 12 * 16 + 8, r: 56 }, { x: 16 * 16, y: 12 * 16 + 10, r: 38 }, { x: 25 * 16, y: 10 * 16, r: 40 }
+    { x: 16 * 16, y: 12 * 16 + 10, r: 38 }, { x: 25 * 16, y: 10 * 16, r: 40 },
+    { x: 5 * 16 + 8, y: 8 * 16 + 6, r: 26, a: 0.45, flicker: true, color: '255,150,70' }
   ];
   return map;
 }
 
 function buildHouse() {
-  const W = 12, H = 10, m = grid(W, H, 'o');
+  const W = 12, H = 10, m = mkGrid(W, H, 'o');
   fill(m, 0, 0, W, 2, 'W');
   fill(m, 3, 5, 6, 3, 'r');
-  m[9][5] = 'E'; m[9][6] = 'E';
-  fill(m, 5, 3, 2, 1, 'X'); m[2][1] = 'X'; m[9][0] = 'X'; m[9][11] = 'X';
+  gset(m, 5, 9, 'E'); gset(m, 6, 9, 'E');
+  fill(m, 5, 3, 2, 1, 'X'); gset(m, 1, 2, 'X'); gset(m, 0, 9, 'X'); gset(m, 11, 9, 'X');
   const map = { id: 'house', w: W, h: H, grid: m };
   map.ground = buildGround(map);
   map.objects = [
@@ -506,37 +959,105 @@ function buildHouse() {
   ];
   map.npcs = [];
   map.lights = [];
+  map.welcome = ['머리 닿는 집에 오신 걸 환영해요!', '벽에 걸린 작업물이나 물건 앞에서 A를 누르거나, 직접 눌러 보세요.'];
   return map;
 }
-const MAPS = { town: buildTown(), house: buildHouse() };
+
+// 대나무숲 안: 대나무가 원형으로 둘러싼 캠프파이어 공간
+function buildBamboo() {
+  const W = 18, H = 18, m = mkGrid(W, H, 'l');
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (Math.hypot(x + 0.5 - 9, y + 0.5 - 9) > 6.3) gset(m, x, y, 'B');
+  fill(m, 8, 15, 2, 1, 'l'); fill(m, 8, 16, 2, 2, 'Q');      // 출구
+  fill(m, 8, 8, 2, 2, 'X');                                   // 캠프파이어
+  fill(m, 8, 6, 2, 1, 'X');                                   // 기타 치는 사람
+  setList(m, '7,8 7,10 10,10 10,9 10,7', 'X');                // 그루터기 의자 5개 (캠프파이어 바로 옆에 제각각)
+  fill(m, 7, 4, 4, 2, 'X');                                   // 눕혀진 대나무 (노래하는 사람 뒤)
+  gset(m, 6, 5, 'X');                                         // 도끼 꽂힌 그루터기
+  setList(m, '4,6 4,7', 'X');                                 // 타이어 (2개씩 두 무더기, 세로로)
+  fill(m, 12, 6, 2, 1, 'X');                                  // 그릴
+  const map = { id: 'bamboo', w: W, h: H, grid: m, bg: '#121a0e' };
+  map.ground = buildGround(map);
+  const o = [];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++)
+    if (gget(m, x, y) === 'B') o.push({ img: IMG.bamboo[hsh(x, y) % 3], x: x * 16 - 1, y: y * 16 - 36, base: y * 16 + 16 });
+  o.push({ draw: drawCampfire, x: 128, y: 128, base: 160 });
+  o.push({ draw: drawSinger, x: 136, y: 90, base: 112 });
+  [[7, 8, 0, -1, 1], [7, 10, 1, 0, 0], [10, 10, 2, 0, 1], [10, 9, 3, 1, 0], [10, 7, 4, 0, 1]].forEach(function (c) {
+    const im = IMG.stumps[c[2]];
+    o.push({ img: im, x: c[0] * 16 + Math.round((16 - im.width) / 2) + c[3], y: c[1] * 16 + 16 - im.height + c[4], base: c[1] * 16 + 16 });
+  });
+  o.push({ img: IMG.bambooLie[0], x: 118, y: 74, base: 90 });
+  o.push({ img: IMG.bambooLie[1], x: 132, y: 80, base: 91 });
+  o.push({ img: IMG.bambooLie[2], x: 124, y: 67, base: 89 });
+  o.push({ img: IMG.marsh[0], x: 134, y: 168 - 18, base: 168 });                 // 불 앞 바닥에 꽂힌 마시멜로 꼬치 두 개
+  o.push({ img: IMG.marsh[1], x: 150, y: 166 - 18, base: 166 });
+  o.push({ img: IMG.axeStump, x: 6 * 16 + 2, y: 6 * 16 - 30, base: 96 });
+  o.push({ img: IMG.tires[0], x: 4 * 16 + 5, y: 7 * 16 - 20, base: 112 });     // 안쪽(위) 무더기
+  o.push({ img: IMG.tires[1], x: 4 * 16 - 1, y: 8 * 16 - 20, base: 128 });     // 바깥쪽(아래) 무더기 — 일자로 안 놓고 살짝 비껴서
+  o.push({ draw: drawGrill, x: 12 * 16, y: 7 * 16 - 26, base: 112 });
+  map.objects = o;
+  const LOG = ['통나무 의자. 다들 여기 앉아 노래를 들었다.'];
+  map.acts = [
+    { x: 8, y: 8, w: 2, h: 2, kind: 'archive', key: 'camp', up: 1 },
+    { x: 12, y: 6, w: 2, h: 1, kind: 'archive', key: 'camp', up: 1 },
+    { x: 8, y: 6, w: 2, h: 1, kind: 'talk', up: 1, lines: ['♪ ~ ♬ ~', '(눈을 감고 기타를 치며 노래하고 있다…)'] },
+    { x: 4, y: 6, w: 1, h: 2, kind: 'dialog', up: 1, lines: ['타이어 네 짝이 두 짝씩 쌓여 있다.'] },
+    { x: 7, y: 4, w: 4, h: 2, kind: 'dialog', lines: ['대나무 몇 대가 바닥에 눕혀져 있다.'] },
+    { x: 6, y: 5, w: 1, h: 1, kind: 'dialog', lines: ['그루터기에 도끼가 박혀 있다.'] },
+    { x: 7, y: 8, w: 1, h: 1, kind: 'dialog', lines: LOG },
+    { x: 7, y: 10, w: 1, h: 1, kind: 'dialog', lines: LOG },
+    { x: 10, y: 10, w: 1, h: 1, kind: 'dialog', lines: LOG },
+    { x: 10, y: 9, w: 1, h: 1, kind: 'dialog', lines: LOG },
+    { x: 10, y: 7, w: 1, h: 1, kind: 'dialog', lines: LOG }
+  ];
+  map.npcs = [];
+  map.lights = [
+    { x: 144, y: 146, r: 120, a: 0.75, flicker: true, color: '255,160,80' },
+    { x: 13 * 16, y: 7 * 16 - 16, r: 34, a: 0.5, flicker: true, color: '255,110,60' }
+  ];
+  map.welcome = ['대나무 숲 안으로 들어왔다.', '모닥불 타는 소리와 기타 소리가 들려온다…'];
+  return map;
+}
+const MAPS = { town: buildTown(), house: buildHouse(), bamboo: buildBamboo() };
 let cur = MAPS.town;
 
 /* =========================================================
    6. 플레이어 · 이동
    ========================================================= */
 const P = { x: 16, y: 15, px: 256, py: 240, nx: 16, ny: 15, dir: 'up', moving: false, t: 0, flip: false, idle: true, turnT: 0, spr: SPR.player };
-const DIRV = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
-let state = 'title', fading = false, modalOpen = false, bHeld = false, joyDir = null, houseVisited = false;
+const DIRV = { up: { x: 0, y: -1 }, down: { x: 0, y: 1 }, left: { x: -1, y: 0 }, right: { x: 1, y: 0 } };
+const DIRS = ['up', 'down', 'left', 'right'];
+let state = 'title', fading = false, modalOpen = false, bHeld = false, joyDir = null;
 const keys = {};
 
 function canWalk(map, x, y, self) {
-  if (x < 0 || y < 0 || x >= map.w || y >= map.h || !WALK.has(map.grid[y][x])) return false;
-  return ![P, ...map.npcs].some(e => e !== self && ((e.x === x && e.y === y) || (e.moving && e.nx === x && e.ny === y)));
+  if (WALK.indexOf(gget(map.grid, x, y)) < 0) return false;
+  const all = [P].concat(map.npcs);
+  for (let i = 0; i < all.length; i++) {
+    const e = all[i];
+    if (e === self) continue;
+    if ((e.x === x && e.y === y) || (e.moving && e.nx === x && e.ny === y)) return false;
+  }
+  return true;
 }
 function tryMove(e, dir, map) {
   e.dir = dir;
-  const [dx, dy] = DIRV[dir], nx = e.x + dx, ny = e.y + dy;
+  const dv = DIRV[dir], nx = e.x + dv.x, ny = e.y + dv.y;
   if (!canWalk(map, nx, ny, e)) return false;
-  Object.assign(e, { moving: true, nx, ny, t: 0, flip: !e.flip });
+  e.moving = true; e.nx = nx; e.ny = ny; e.t = 0; e.flip = !e.flip;
   return true;
 }
 function advanceMove(e, dt, speed) {
   e.t += dt * speed;
-  if (e.t >= 1) { Object.assign(e, { x: e.nx, y: e.ny, moving: false, t: 0, px: e.nx * 16, py: e.ny * 16 }); return true; }
-  e.px = (e.x + (e.nx - e.x) * e.t) * 16; e.py = (e.y + (e.ny - e.y) * e.t) * 16;
+  if (e.t >= 1) {
+    e.x = e.nx; e.y = e.ny; e.moving = false; e.t = 0; e.px = e.nx * 16; e.py = e.ny * 16;
+    return true;
+  }
+  e.px = (e.x + (e.nx - e.x) * e.t) * 16;
+  e.py = (e.y + (e.ny - e.y) * e.t) * 16;
   return false;
 }
-const locked = () => state !== 'play' || dlg.active || modalOpen || fading;
+function locked() { return state !== 'play' || dlg.active || modalOpen || fading; }
 function inputDir() {
   if (joyDir) return joyDir;
   if (keys.arrowup || keys.w) return 'up';
@@ -559,160 +1080,225 @@ function updatePlayer(dt) {
   tryMove(P, d, cur);
 }
 function checkTrigger() {
-  const c = cur.grid[P.y][P.x];
+  const c = gget(cur.grid, P.x, P.y);
   if (cur.id === 'town' && c === 'D') { goMap('house', P.x - 10, 8, 'up'); return true; }
+  if (cur.id === 'town' && c === 'G') { goMap('bamboo', 9, 15, 'up'); return true; }
   if (cur.id === 'house' && c === 'E') { goMap('town', P.x + 10, 13, 'down'); return true; }
+  if (cur.id === 'bamboo' && c === 'Q') { goMap('town', 5, 9, 'down'); return true; }
   return false;
 }
 function goMap(id, x, y, dir) {
   fading = true; sfx('door'); $('fade').style.opacity = 1;
-  setTimeout(() => {
+  setTimeout(function () {
     cur = MAPS[id];
-    Object.assign(P, { x, y, nx: x, ny: y, px: x * 16, py: y * 16, dir, moving: false, idle: true });
+    P.x = x; P.y = y; P.nx = x; P.ny = y; P.px = x * 16; P.py = y * 16; P.dir = dir; P.moving = false; P.idle = true;
     updateMusic();
     $('fade').style.opacity = 0;
-    setTimeout(() => {
+    setTimeout(function () {
       fading = false;
-      if (id === 'house' && !houseVisited) { houseVisited = true; say(['머리 닿는 집에 오신 걸 환영해요!', '벽에 걸린 작업물이나 물건 앞에서 A를 누르거나, 직접 눌러 보세요.']); }
+      if (cur.welcome && !cur.visited) { cur.visited = true; say(cur.welcome); }
     }, 260);
   }, 260);
 }
 function updateNPCs(dt) {
-  for (const n of cur.npcs) {
-    if (n.moving) { advanceMove(n, dt, 3); continue; }
-    if (n.talking) continue;
+  cur.npcs.forEach(function (n) {
+    if (n.moving) { advanceMove(n, dt, 3); return; }
+    if (n.talking || n.stay) return;
     n.timer -= dt;
-    if (n.timer > 0) continue;
+    if (n.timer > 0) return;
     n.timer = 1.5 + Math.random() * 2.5;
-    const d = ['up', 'down', 'left', 'right'][Math.random() * 4 | 0], [dx, dy] = DIRV[d];
-    if (Math.abs(n.x + dx - n.home.x) <= 3 && Math.abs(n.y + dy - n.home.y) <= 2) tryMove(n, d, cur); else n.dir = d;
-  }
+    const d = DIRS[Math.floor(Math.random() * 4)], dv = DIRV[d];
+    if (Math.abs(n.x + dv.x - n.home.x) <= 3 && Math.abs(n.y + dv.y - n.home.y) <= 2) tryMove(n, d, cur);
+    else n.dir = d;
+  });
 }
 
 /* =========================================================
    7. 대화 · 상호작용
    ========================================================= */
 const dlg = { active: false, lines: [], i: 0, shown: 0, full: '', done: null };
+function actOn(a) { return !a.cond || a.cond(); }
 function say(lines, done) {
-  Object.assign(dlg, { active: true, lines, i: 0, done });
+  dlg.active = true; dlg.lines = lines; dlg.i = 0; dlg.done = done || null;
   dlg.full = lines[0]; dlg.shown = 0;
   $('dialog').classList.add('show');
 }
 function advance() {
   if (dlg.shown < dlg.full.length) { dlg.shown = dlg.full.length; return; }
-  if (++dlg.i >= dlg.lines.length) {
+  dlg.i += 1;
+  if (dlg.i >= dlg.lines.length) {
     dlg.active = false; $('dialog').classList.remove('show');
-    const d = dlg.done; dlg.done = null; d && d();
-  } else { dlg.full = dlg.lines[dlg.i]; dlg.shown = 0; }
+    const d = dlg.done; dlg.done = null;
+    if (d) d();
+  } else {
+    dlg.full = dlg.lines[dlg.i]; dlg.shown = 0;
+  }
+}
+function findAct(fx, fy, useUp) {
+  for (let i = 0; i < cur.acts.length; i++) {
+    const a = cur.acts[i];
+    const top = useUp ? a.y - (a.up || 0) : a.y;
+    if (actOn(a) && fx >= a.x && fx < a.x + a.w && fy >= top && fy < a.y + a.h) return a;
+  }
+  return null;
 }
 function facing() {
-  const [dx, dy] = DIRV[P.dir], fx = P.x + dx, fy = P.y + dy;
-  const n = cur.npcs.find(n => n.x === fx && n.y === fy);
-  if (n) return { kind: 'npc', npc: n };
-  return cur.acts.find(a => fx >= a.x && fx < a.x + a.w && fy >= a.y && fy < a.y + a.h) || null;
+  const dv = DIRV[P.dir], fx = P.x + dv.x, fy = P.y + dv.y;
+  for (let i = 0; i < cur.npcs.length; i++) {
+    const n = cur.npcs[i];
+    if (n.x === fx && n.y === fy) return { kind: 'npc', npc: n };
+  }
+  return findAct(fx, fy, false);
 }
 function interact(a) {
   sfx('a');
   if (a.kind === 'npc') {
     const n = a.npc, dx = P.x - n.x, dy = P.y - n.y;
     n.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
-    n.talking = true; say(n.lines, () => n.talking = false);
+    n.talking = true;
+    say(n.lines, function () { n.talking = false; if (n.stay) n.dir = n.baseDir; });
   } else if (a.kind === 'archive') openArchive(a.key);
-  else if (a.kind === 'dialog') say(a.lines);
+  else if (a.kind === 'dialog' || a.kind === 'talk') say(a.lines);
   else if (a.kind === 'contact') openContact();
   else if (a.kind === 'insta') openInsta();
 }
 function pressA() {
-  if (state === 'title') return start();
+  if (state === 'title') { start(); return; }
   if (modalOpen) return;
-  if (dlg.active) { sfx('a'); return advance(); }
+  if (dlg.active) { sfx('a'); advance(); return; }
   if (fading || P.moving) return;
-  const f = facing(); if (f) interact(f);
+  const f = facing();
+  if (f) interact(f);
 }
 function pressB() { if (modalOpen) closeModal(); else if (dlg.active) advance(); }
 
 /* =========================================================
-   8. 모달 (상세 · 인스타 · 컨택트 · 목록)
+   8. 상세 창 (상세 · 인스타 · 컨택트 · 목록)
    ========================================================= */
 let modalNav = null;
 const sheet = $('sheet');
-function showModal() { modalOpen = true; $('modal').classList.add('show'); sheet.scrollTop = 0; bindClose(); }
-function bindClose() { sheet.querySelectorAll('.close').forEach(b => b.onclick = closeModal); }
+function showModal() { modalOpen = true; $('modal').classList.add('show'); sheet.scrollTop = 0; }
 function closeModal() { modalOpen = false; modalNav = null; $('modal').classList.remove('show'); sfx('close'); }
-$('modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
+$('modal').addEventListener('click', function (e) { if (e.target.id === 'modal') closeModal(); });
 
 function openArchive(key) {
-  const a = ARCHIVE[key]; if (!a) return;
+  const a = ARCHIVE[key];
+  if (!a) return;
   let i = 0;
-  const go = d => { if (a.images.length < 2) return; i = (i + d + a.images.length) % a.images.length; draw(); };
-  const draw = () => {
+  function go(d) {
+    if (a.images.length < 2) return;
+    i = (i + d + a.images.length) % a.images.length;
+    draw();
+  }
+  function draw() {
     const imgs = a.images;
-    sheet.innerHTML = `
-      <div class="no">PROJECT ${esc(a.no)}${a.type ? ' · ' + esc(a.type) : ''}</div>
-      <h2>${esc(a.title)}</h2>
-      <div class="viewer">
-        ${imgs.length ? `<img src="${esc(imgs[i])}" alt="${esc(a.title)} 이미지 ${i + 1}">`
-                      : `<div class="empty">아직 등록된 이미지가 없어요<br>ARCHIVE의 images에 사진 경로를 넣어 주세요</div>`}
-        ${imgs.length > 1 ? `<button class="nav prev" aria-label="이전">◀</button><button class="nav next" aria-label="다음">▶</button><div class="count">${i + 1} / ${imgs.length}</div>` : ''}
-      </div>
-      ${a.date ? `<div class="meta">${esc(a.date)}</div>` : ''}
-      <p class="desc">${esc(a.desc)}</p>
-      <div class="actions">
-        ${a.post ? `<a class="btn primary" href="${esc(a.post)}" target="_blank" rel="noopener">인스타 게시물 보기 ▶</a>` : ''}
-        <a class="btn ${a.post ? '' : 'primary'}" href="${SITE.insta}" target="_blank" rel="noopener">인스타 계정 보기</a>
-        <button class="btn close">닫기</button>
-      </div>`;
-    const v = sheet.querySelector('.viewer');
-    v.querySelector('.prev')?.addEventListener('click', () => go(-1));
-    v.querySelector('.next')?.addEventListener('click', () => go(1));
+    sheet.textContent = '';
+    sheet.appendChild(el('div', 'no', 'PROJECT ' + a.no + (a.type ? ' · ' + a.type : '')));
+    sheet.appendChild(el('h2', '', a.title));
+    const v = el('div', 'viewer');
+    if (imgs.length) {
+      const im = el('img');
+      im.src = imgs[i];
+      im.alt = a.title + ' 이미지 ' + (i + 1);
+      v.appendChild(im);
+    } else {
+      v.appendChild(el('div', 'empty', '아직 등록된 이미지가 없어요\nARCHIVE의 images에 사진 경로를 넣어 주세요'));
+    }
+    if (imgs.length > 1) {
+      v.appendChild(makeBtn('nav prev', '◀', function () { go(-1); }));
+      v.appendChild(makeBtn('nav next', '▶', function () { go(1); }));
+      v.appendChild(el('div', 'count', (i + 1) + ' / ' + imgs.length));
+    }
     let sx = null;
-    v.addEventListener('touchstart', e => sx = e.touches[0].clientX, { passive: true });
-    v.addEventListener('touchend', e => { if (sx === null) return; const dx = e.changedTouches[0].clientX - sx; if (Math.abs(dx) > 40) go(dx < 0 ? 1 : -1); sx = null; });
-    bindClose();
-  };
-  draw(); showModal(); modalNav = go;
+    v.addEventListener('touchstart', function (e) { sx = e.touches.item(0).clientX; }, { passive: true });
+    v.addEventListener('touchend', function (e) {
+      if (sx === null) return;
+      const dx = e.changedTouches.item(0).clientX - sx;
+      if (Math.abs(dx) > 40) go(dx < 0 ? 1 : -1);
+      sx = null;
+    });
+    sheet.appendChild(v);
+    if (a.date) sheet.appendChild(el('div', 'meta', a.date));
+    sheet.appendChild(el('p', 'desc', a.desc));
+    const act = el('div', 'actions');
+    if (a.post) act.appendChild(makeLink('btn primary', a.post, '인스타 게시물 보기 ▶'));
+    act.appendChild(makeLink(a.post ? 'btn' : 'btn primary', SITE.insta, '인스타 계정 보기'));
+    act.appendChild(makeBtn('btn', '닫기', closeModal));
+    sheet.appendChild(act);
+  }
+  draw();
+  showModal();
+  modalNav = go;
 }
 function openInsta() {
-  sheet.innerHTML = `
-    <div class="no">PC · INSTAGRAM</div>
-    <h2>${esc(SITE.instaId)}</h2>
-    <p class="desc">PC를 켰다! 머리 닿는 집의 인스타그램 기록을 볼 수 있어요.</p>
-    <div class="actions"><a class="btn primary" href="${SITE.insta}" target="_blank" rel="noopener">인스타그램 열기 ▶</a><button class="btn close">닫기</button></div>
-    <div id="feed"></div>`;
-  const feed = $('feed');
+  sheet.textContent = '';
+  sheet.appendChild(el('div', 'no', 'PC · INSTAGRAM'));
+  sheet.appendChild(el('h2', '', SITE.instaId));
+  sheet.appendChild(el('p', 'desc', 'PC를 켰다! 머리 닿는 집의 인스타그램 기록을 볼 수 있어요.'));
+  const act = el('div', 'actions');
+  act.appendChild(makeLink('btn primary', SITE.insta, '인스타그램 열기 ▶'));
+  act.appendChild(makeBtn('btn', '닫기', closeModal));
+  sheet.appendChild(act);
+  const feed = el('div');
+  feed.id = 'feed';
+  sheet.appendChild(feed);
   if (INSTA_POSTS.length) {
-    feed.innerHTML = INSTA_POSTS.map(u => `<blockquote class="instagram-media" data-instgrm-permalink="${esc(u)}" data-instgrm-version="14" style="width:100%;margin:12px 0"></blockquote>`).join('');
+    INSTA_POSTS.forEach(function (u) {
+      const bq = el('blockquote', 'instagram-media');
+      bq.setAttribute('data-instgrm-permalink', u);
+      bq.setAttribute('data-instgrm-version', '14');
+      bq.style.width = '100%';
+      bq.style.margin = '12px 0';
+      feed.appendChild(bq);
+    });
     if (window.instgrm) window.instgrm.Embeds.process();
-    else { const s = document.createElement('script'); s.async = true; s.src = 'https://www.instagram.com/embed.js'; document.body.appendChild(s); }
-  } else feed.innerHTML = `<p class="hint">INSTA_POSTS에 게시물 주소를 넣으면 여기에 피드가 표시돼요. 이게 뭔 기능이지?</p>`;
+    else {
+      const s = document.createElement('script');
+      s.async = true;
+      s.src = 'https://www.instagram.com/embed.js';
+      document.body.appendChild(s);
+    }
+  } else {
+    feed.appendChild(el('p', 'hint', 'INSTA_POSTS에 게시물 주소를 넣으면 여기에 피드가 표시돼요.'));
+  }
   showModal();
 }
 function openContact() {
-  sheet.innerHTML = `
-    <div class="no">MAILBOX · CONTACT</div>
-    <h2>편지 보내기</h2>
-    <p class="desc">협업 제안, 캠프·등반 참여 문의, 굿즈 관련 연락은 언제든 환영해요.</p>
-    <div class="actions" style="flex-direction:column;align-items:stretch">
-      <a class="btn primary" href="mailto:${esc(SITE.email)}">✉ ${esc(SITE.email)}</a>
-      <a class="btn" href="${SITE.insta}" target="_blank" rel="noopener">Instagram ${esc(SITE.instaId)}</a>
-      <button class="btn close">닫기</button>
-    </div>`;
+  sheet.textContent = '';
+  sheet.appendChild(el('div', 'no', 'MAILBOX · CONTACT'));
+  sheet.appendChild(el('h2', '', '편지 보내기'));
+  sheet.appendChild(el('p', 'desc', '협업 제안, 캠프·등반 참여 문의, 굿즈 관련 연락은 언제든 환영해요.'));
+  const act = el('div', 'actions col');
+  const mail = el('a', 'btn primary', '✉ ' + SITE.email);
+  mail.href = 'mailto:' + SITE.email;
+  act.appendChild(mail);
+  act.appendChild(makeLink('btn', SITE.insta, 'Instagram ' + SITE.instaId));
+  act.appendChild(makeBtn('btn', '닫기', closeModal));
+  sheet.appendChild(act);
   showModal();
+}
+function listItem(label, title, fn) {
+  const b = makeBtn('btn', '', function () { sfx('a'); fn(); });
+  b.appendChild(el('span', '', label));
+  b.appendChild(document.createTextNode(title));
+  return b;
 }
 function openList() {
   if (state !== 'play' || fading) return;
-  sheet.innerHTML = `
-    <div class="no">MENU</div><h2>아카이브 목록</h2>
-    <div class="list">
-      ${Object.entries(ARCHIVE).map(([k, a]) => `<button class="btn" data-k="${k}"><span>${esc(a.no)}</span>${esc(a.title)}</button>`).join('')}
-      <button class="btn" data-k="__insta"><span>IG</span>인스타그램</button>
-      <button class="btn" data-k="__contact"><span>✉</span>컨택트</button>
-    </div>
-    <div class="actions"><button class="btn close">닫기</button></div>`;
-  sheet.querySelectorAll('[data-k]').forEach(b => b.onclick = () => {
-    const k = b.dataset.k; sfx('a');
-    if (k === '__insta') openInsta(); else if (k === '__contact') openContact(); else openArchive(k);
+  sheet.textContent = '';
+  sheet.appendChild(el('div', 'no', 'MENU'));
+  sheet.appendChild(el('h2', '', '아카이브 목록'));
+  const list = el('div', 'list');
+  Object.keys(ARCHIVE).forEach(function (key) {
+    const a = ARCHIVE[key];
+    list.appendChild(listItem(a.no, a.title, function () { openArchive(key); }));
   });
+  list.appendChild(listItem('IG', '인스타그램', openInsta));
+  list.appendChild(listItem('✉', '컨택트', openContact));
+  sheet.appendChild(list);
+  const act = el('div', 'actions');
+  act.appendChild(makeBtn('btn', '닫기', closeModal));
+  sheet.appendChild(act);
   showModal();
 }
 
@@ -731,27 +1317,43 @@ function phase() {
   return 'night';
 }
 function updateClock() {
-  const d = new Date(), hm = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
-  $('timeBtn').textContent = timeMode === 'auto' ? `${hm} ${TIME_LABEL[phase()]}` : TIME_LABEL[timeMode];
+  const d = new Date();
+  const hm = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  $('timeBtn').textContent = (timeMode === 'auto') ? hm + ' ' + TIME_LABEL[phase()] : TIME_LABEL[timeMode];
 }
-$('timeBtn').onclick = () => { timeMode = TIME_MODES[(TIME_MODES.indexOf(timeMode) + 1) % 4]; sfx('a'); updateClock(); };
-setInterval(updateClock, 10000); updateClock();
+$('timeBtn').onclick = function () {
+  timeMode = TIME_MODES[(TIME_MODES.indexOf(timeMode) + 1) % 4];
+  sfx('a'); updateClock();
+};
+setInterval(updateClock, 10000);
+updateClock();
 
 /* =========================================================
    10. 음악 · 효과음 (직접 작곡한 칩튠)
    ========================================================= */
 let actx = null, master = null, gains = [], loopTimer = null, curTrack = null, soundOn = true;
 const NI = { C: 0, 'C#': 1, D: 2, 'D#': 3, E: 4, F: 5, 'F#': 6, G: 7, 'G#': 8, A: 9, 'A#': 10, B: 11 };
-const freq = n => 440 * Math.pow(2, (NI[n.slice(0, -1)] + (+n.slice(-1) - 4) * 12 - 9) / 12);
-const parse = s => { let t = 0; return s.trim().split(/\s+/).map(tok => { const [n, l] = tok.split('.'); const e = { n, t, l: +l }; t += +l; return e; }); };
+function freq(n) { return 440 * Math.pow(2, (NI[n.slice(0, -1)] + (Number(n.slice(-1)) - 4) * 12 - 9) / 12); }
+function parse(s) {
+  let t = 0;
+  return s.trim().split(/\s+/).map(function (tok) {
+    const p = tok.split('.');
+    const e = { n: p[0], t: t, l: Number(p[1]) };
+    t += Number(p[1]);
+    return e;
+  });
+}
 const TOWN_LEAD = 'C5.2 E5.2 G5.2 E5.2 F5.2 A5.2 G5.4 E5.2 G5.2 C6.2 B5.1 A5.1 G5.6 r.2 A5.2 G5.2 F5.2 E5.2 D5.2 E5.2 F5.4 E5.2 D5.2 C5.2 D5.2 C5.6 r.2';
 const TOWN_BASS = 'C3.2 G3.2 C3.2 G3.2 F2.2 C3.2 F2.2 C3.2 C3.2 G3.2 C3.2 G3.2 G2.2 D3.2 G2.2 D3.2 F2.2 C3.2 F2.2 C3.2 G2.2 D3.2 G2.2 D3.2 C3.2 G3.2 G2.2 B2.2 C3.2 G3.2 C3.4';
 const HOUSE_LEAD = 'G4.3 A4.1 B4.2 D5.2 C5.4 B4.2 A4.2 G4.2 E4.2 F4.2 A4.2 G4.8 A4.3 B4.1 C5.2 E5.2 D5.4 C5.2 B4.2 A4.2 F4.2 G4.2 B4.2 C5.8';
 const HOUSE_BASS = 'G2.4 D3.4 A2.4 E3.4 C3.4 F2.4 G2.4 D3.4 F2.4 C3.4 G2.4 B2.4 F2.4 G2.4 C3.8';
+const CAMP_LEAD = 'D5.2 B4.2 G4.2 B4.2 C5.4 A4.4 B4.2 G4.2 E4.2 G4.2 D4.8 E4.2 G4.2 A4.2 B4.2 C5.4 E5.4 D5.3 C5.1 B4.2 A4.2 G4.8';
+const CAMP_ARP = 'G2.2 D3.2 G3.2 D3.2 A2.2 E3.2 C3.2 E3.2 G2.2 D3.2 G3.2 D3.2 G2.2 D3.2 B2.2 D3.2 C3.2 G3.2 C4.2 G3.2 A2.2 E3.2 A3.2 E3.2 D3.2 A3.2 F#3.2 A3.2 G2.2 D3.2 G3.4';
 const TRACKS = {
-  town:  { bpm: 124, parts: [{ wave: 'square', vol: .05, ev: parse(TOWN_LEAD) }, { wave: 'triangle', vol: .14, ev: parse(TOWN_BASS) }] },
-  night: { bpm: 92,  parts: [{ wave: 'square', vol: .035, ev: parse(TOWN_LEAD) }, { wave: 'triangle', vol: .12, ev: parse(TOWN_BASS) }] },
-  house: { bpm: 100, parts: [{ wave: 'square', vol: .045, ev: parse(HOUSE_LEAD) }, { wave: 'triangle', vol: .13, ev: parse(HOUSE_BASS) }] }
+  town:  { bpm: 124, parts: [{ wave: 'square', vol: 0.05, ev: parse(TOWN_LEAD) }, { wave: 'triangle', vol: 0.14, ev: parse(TOWN_BASS) }] },
+  night: { bpm: 92,  parts: [{ wave: 'square', vol: 0.035, ev: parse(TOWN_LEAD) }, { wave: 'triangle', vol: 0.12, ev: parse(TOWN_BASS) }] },
+  house: { bpm: 100, parts: [{ wave: 'square', vol: 0.045, ev: parse(HOUSE_LEAD) }, { wave: 'triangle', vol: 0.13, ev: parse(HOUSE_BASS) }] },
+  camp:  { bpm: 84,  parts: [{ wave: 'triangle', vol: 0.14, ev: parse(CAMP_LEAD) }, { wave: 'square', vol: 0.025, ev: parse(CAMP_ARP) }] }
 };
 function tone(dest, type, f, t, d, v) {
   const o = actx.createOscillator(), g = actx.createGain();
@@ -762,24 +1364,42 @@ function tone(dest, type, f, t, d, v) {
 }
 function scheduleLoop(t0) {
   const tr = TRACKS[curTrack], step = 60 / tr.bpm / 2;
-  const g = actx.createGain(); g.connect(master); gains.push(g); if (gains.length > 3) gains.shift();
+  const g = actx.createGain();
+  g.connect(master); gains.push(g);
+  if (gains.length > 3) gains.shift();
   let len = 0;
-  for (const p of tr.parts) for (const e of p.ev) { len = Math.max(len, e.t + e.l); if (e.n !== 'r') tone(g, p.wave, freq(e.n), t0 + e.t * step, e.l * step * 0.85, p.vol); }
+  tr.parts.forEach(function (p) {
+    p.ev.forEach(function (e) {
+      len = Math.max(len, e.t + e.l);
+      if (e.n !== 'r') tone(g, p.wave, freq(e.n), t0 + e.t * step, e.l * step * 0.85, p.vol);
+    });
+  });
   const end = t0 + len * step;
-  loopTimer = setTimeout(() => scheduleLoop(end), Math.max(0, (end - actx.currentTime - 0.4) * 1000));
+  loopTimer = setTimeout(function () { scheduleLoop(end); }, Math.max(0, (end - actx.currentTime - 0.4) * 1000));
 }
 function stopMusic() {
   clearTimeout(loopTimer);
   const now = actx.currentTime;
-  gains.forEach(g => { g.gain.setValueAtTime(g.gain.value, now); g.gain.linearRampToValueAtTime(0, now + 0.15); setTimeout(() => g.disconnect(), 300); });
+  gains.forEach(function (g) {
+    g.gain.setValueAtTime(g.gain.value, now);
+    g.gain.linearRampToValueAtTime(0, now + 0.15);
+    setTimeout(function () { g.disconnect(); }, 300);
+  });
   gains = [];
 }
 function playTrack(name) {
   if (!actx || (name === curTrack && gains.length)) return;
   if (gains.length) stopMusic();
-  curTrack = name; scheduleLoop(actx.currentTime + 0.2);
+  curTrack = name;
+  scheduleLoop(actx.currentTime + 0.2);
 }
-function updateMusic() { playTrack(cur.id === 'house' ? 'house' : (phase() === 'night' ? 'night' : 'town')); }
+function updateMusic() {
+  let name = 'town';
+  if (cur.id === 'house') name = 'house';
+  else if (cur.id === 'bamboo') name = 'camp';
+  else if (phase() === 'night') name = 'night';
+  playTrack(name);
+}
 function sfx(type) {
   if (!actx || !soundOn) return;
   const t = actx.currentTime;
@@ -789,11 +1409,15 @@ function sfx(type) {
 }
 function initAudio() {
   if (actx) return;
-  const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
-  actx = new AC(); master = actx.createGain(); master.gain.value = soundOn ? 0.6 : 0; master.connect(actx.destination);
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return;
+  actx = new AC();
+  master = actx.createGain();
+  master.gain.value = soundOn ? 0.6 : 0;
+  master.connect(actx.destination);
   if (actx.resume) actx.resume();
 }
-$('sndBtn').onclick = () => {
+$('sndBtn').onclick = function () {
   soundOn = !soundOn; initAudio();
   if (master) master.gain.value = soundOn ? 0.6 : 0;
   $('sndBtn').textContent = soundOn ? '♪ ON' : '♪ OFF';
@@ -805,51 +1429,62 @@ $('sndBtn').onclick = () => {
    ========================================================= */
 function start() {
   if (state !== 'title') return;
-  state = 'play'; $('title').classList.add('hide');
+  state = 'play';
+  $('title').classList.add('hide');
   initAudio(); updateMusic();
 }
-$('title').addEventListener('click', start);
-addEventListener('keydown', e => {
+['touchend', 'click'].forEach(function (ev) {
+  $('title').addEventListener(ev, function (e) { e.preventDefault(); start(); }, { passive: false });
+});
+addEventListener('keydown', function (e) {
   const k = e.key.toLowerCase();
-  if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
+  if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].indexOf(k) >= 0) e.preventDefault();
   keys[k] = true;
   if (e.repeat) return;
-  if (state === 'title') return start();
-  if (modalOpen && modalNav && (k === 'arrowleft' || k === 'arrowright')) return modalNav(k === 'arrowleft' ? -1 : 1);
-  if (['z', 'enter', ' ', 'e'].includes(k)) pressA();
+  if (state === 'title') { start(); return; }
+  if (modalOpen && modalNav && (k === 'arrowleft' || k === 'arrowright')) { modalNav(k === 'arrowleft' ? -1 : 1); return; }
+  if (['z', 'enter', ' ', 'e'].indexOf(k) >= 0) pressA();
   if (k === 'x' || k === 'escape') pressB();
 });
-addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
-addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+addEventListener('keyup', function (e) { keys[e.key.toLowerCase()] = false; });
+addEventListener('blur', function () { Object.keys(keys).forEach(function (k) { keys[k] = false; }); });
 
-const joy = $('joy'), knob = $('knob'); let joyId = null;
+const joy = $('joy'), knob = $('knob');
+let joyId = null;
 function moveJoy(e) {
   const r = joy.getBoundingClientRect();
   let dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
   const d = Math.hypot(dx, dy), max = 34;
   if (d > max) { dx *= max / d; dy *= max / d; }
-  knob.style.transform = `translate(${dx}px,${dy}px)`;
-  joyDir = d < 12 ? null : (Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
+  knob.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+  if (d < 12) joyDir = null;
+  else if (Math.abs(dx) > Math.abs(dy)) joyDir = (dx > 0) ? 'right' : 'left';
+  else joyDir = (dy > 0) ? 'down' : 'up';
 }
-joy.addEventListener('pointerdown', e => { joyId = e.pointerId; joy.setPointerCapture(e.pointerId); moveJoy(e); });
-joy.addEventListener('pointermove', e => { if (e.pointerId === joyId) moveJoy(e); });
-const endJoy = e => { if (e.pointerId !== joyId) return; joyId = null; joyDir = null; knob.style.transform = ''; };
-joy.addEventListener('pointerup', endJoy); joy.addEventListener('pointercancel', endJoy);
+joy.addEventListener('pointerdown', function (e) { joyId = e.pointerId; joy.setPointerCapture(e.pointerId); moveJoy(e); });
+joy.addEventListener('pointermove', function (e) { if (e.pointerId === joyId) moveJoy(e); });
+function endJoy(e) { if (e.pointerId !== joyId) return; joyId = null; joyDir = null; knob.style.transform = ''; }
+joy.addEventListener('pointerup', endJoy);
+joy.addEventListener('pointercancel', endJoy);
 
-$('btnA').addEventListener('pointerdown', e => { e.preventDefault(); pressA(); });
-$('btnB').addEventListener('pointerdown', e => { e.preventDefault(); bHeld = true; pressB(); });
-['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => $('btnB').addEventListener(ev, () => bHeld = false));
-$('dialog').addEventListener('click', () => { sfx('a'); advance(); });
+$('btnA').addEventListener('pointerdown', function (e) { e.preventDefault(); pressA(); });
+$('btnB').addEventListener('pointerdown', function (e) { e.preventDefault(); bHeld = true; pressB(); });
+['pointerup', 'pointercancel', 'pointerleave'].forEach(function (ev) {
+  $('btnB').addEventListener(ev, function () { bHeld = false; });
+});
+$('dialog').addEventListener('click', function () { sfx('a'); advance(); });
 $('prompt').addEventListener('click', pressA);
-$('listBtn').onclick = () => { sfx('a'); openList(); };
+$('listBtn').onclick = function () { sfx('a'); openList(); };
 
 // 화면의 오브젝트·NPC를 직접 눌러도 열림
-cv.addEventListener('pointerup', e => {
+cv.addEventListener('pointerdown', function (e) {
   if (locked()) return;
   const tx = Math.floor((e.clientX / scale + cam.x) / 16), ty = Math.floor((e.clientY / scale + cam.y) / 16);
-  const n = cur.npcs.find(n => n.x === tx && (n.y === ty || n.y === ty + 1));
-  if (n) return interact({ kind: 'npc', npc: n });
-  const a = cur.acts.find(a => tx >= a.x && tx < a.x + a.w && ty >= a.y - (a.up || 0) && ty < a.y + a.h);
+  for (let i = 0; i < cur.npcs.length; i++) {
+    const n = cur.npcs[i];
+    if (n.x === tx && (n.y === ty || n.y === ty + 1)) { interact({ kind: 'npc', npc: n }); return; }
+  }
+  const a = findAct(tx, ty, true);
   if (a) interact(a);
 });
 
@@ -860,86 +1495,165 @@ let scale = 2;
 const cam = { x: 0, y: 0 };
 function resize() {
   scale = Math.max(2, Math.floor(Math.min(innerWidth, innerHeight) / 150));
-  cv.width = Math.ceil(innerWidth / scale); cv.height = Math.ceil(innerHeight / scale);
-  cv.style.width = cv.width * scale + 'px'; cv.style.height = cv.height * scale + 'px';
+  cv.width = Math.ceil(innerWidth / scale);
+  cv.height = Math.ceil(innerHeight / scale);
+  cv.style.width = cv.width * scale + 'px';
+  cv.style.height = cv.height * scale + 'px';
   ctx.imageSmoothingEnabled = false;
 }
-addEventListener('resize', resize); resize();
+addEventListener('resize', resize);
+resize();
 
-const LABEL = { archive: '프로젝트 보기', dialog: '읽기', npc: '말 걸기', contact: '편지 보내기', insta: '인스타그램 보기' };
+const LABEL = { archive: '프로젝트 보기', dialog: '읽기', npc: '말 걸기', talk: '말 걸기', contact: '편지 보내기', insta: '인스타그램 보기' };
 let hudKey = null, promptLabel = null;
 function updateHUD() {
   let near = null, best = 99;
-  for (const a of cur.acts) {
-    if (a.kind !== 'archive') continue;
+  cur.acts.forEach(function (a) {
+    if (a.kind !== 'archive') return;
     const dx = Math.max(a.x - P.x, 0, P.x - (a.x + a.w - 1)), dy = Math.max(a.y - P.y, 0, P.y - (a.y + a.h - 1));
     if (dx + dy <= 2 && dx + dy < best) { best = dx + dy; near = a; }
-  }
+  });
   const key = near ? near.key : '';
   if (key !== hudKey) {
     hudKey = key;
-    if (near) $('tag').innerHTML = `<small>PROJECT ${esc(ARCHIVE[key].no)}</small><b>${esc(ARCHIVE[key].title)}</b>`;
-    $('tag').classList.toggle('show', !!near);
+    const tag = $('tag');
+    if (near) {
+      const ar = ARCHIVE[key];
+      tag.textContent = '';
+      tag.appendChild(el('small', '', 'PROJECT ' + ar.no));
+      tag.appendChild(el('b', '', ar.title));
+    }
+    tag.classList.toggle('show', !!near);
   }
-  const f = (!locked() && !P.moving) ? facing() : null, label = f ? LABEL[f.kind] : '';
+  const f = (!locked() && !P.moving) ? facing() : null;
+  const label = f ? LABEL[f.kind] : '';
   if (label !== promptLabel) {
     promptLabel = label;
     $('prompt').querySelector('span').textContent = label;
     $('prompt').classList.toggle('show', !!label);
   }
 }
-const frameOf = e => !e.moving ? 0 : (e.t < 0.5 ? (e.flip ? 1 : 2) : 0);
+function frameOf(e) { if (!e.moving) return 0; if (e.t < 0.5) return e.flip ? 1 : 2; return 0; }
 function drawEnt(e) {
   const x = Math.round(e.px - cam.x), y = Math.round(e.py - cam.y);
-  ctx.fillStyle = 'rgba(0,0,0,.2)'; ctx.fillRect(x + 3, y + 13, 10, 3);
-  ctx.drawImage(e.spr[e.dir][frameOf(e)], x, y - 4);
+  ctx.fillStyle = 'rgba(0,0,0,.2)';
+  ctx.fillRect(x + 3, y + 13, 10, 3);
+  const frames = e.spr[e.dir];
+  ctx.drawImage(frames[frameOf(e)], x, y - 4);
+}
+// 바다 물결 + 밀려오는 파도
+function drawSeaFX(t) {
+  const m = cur.grid;
+  function at(x, y) { const v = gget(m, x, y); return v === '' ? 'S' : v; }
+  const x0 = Math.max(0, Math.floor(cam.x / 16)), y0 = Math.max(0, Math.floor(cam.y / 16));
+  const x1 = Math.min(cur.w - 1, Math.floor((cam.x + cv.width) / 16)), y1 = Math.min(cur.h - 1, Math.floor((cam.y + cv.height) / 16));
+  for (let ty = y0; ty <= y1; ty++) for (let tx = x0; tx <= x1; tx++) {
+    if (gget(m, tx, ty) !== 'S') continue;
+    const X = tx * 16 - cam.x, Y = ty * 16 - cam.y, h = hsh(tx, ty);
+    const s1 = Math.floor(t * 5 + (h % 16)) % 16, s2 = 15 - Math.floor(t * 4 + ((h >>> 5) % 16)) % 16;
+    R(ctx, '#8fe3d8', X + s1, Y + 3 + (h % 3), 3, 1);
+    R(ctx, '#2f9aa0', X + s2, Y + 10 + ((h >>> 3) % 3), 4, 1);
+    const w = (wave(t, tx * 16 + 8) + 1) / 2;
+    if (at(tx, ty - 1) !== 'S') {
+      const p = Math.round(w * 5);
+      R(ctx, '#9be6dc', X, Y, 16, 7 - p);
+      R(ctx, '#f0fffb', X, Y + 6 - p, 16, 1);
+      for (let i = (tx * 5) % 4; i < 16; i += 4) R(ctx, '#f0fffb', X + i, Y + 7 - p, 2, 1);
+      if (w > 0.85) for (let i = 1; i < 16; i += 5) R(ctx, '#ffffff', X + i, Y - 1, 2, 1);
+      const p2 = Math.round(((wave(t - 1.2, tx * 16 + 8) + 1) / 2) * 4);
+      R(ctx, '#c8f4ee', X + ((tx * 3) % 5), Y + 13 - p2, 8, 1);
+    }
+    if (at(tx - 1, ty) !== 'S') R(ctx, '#e8fbf6', X + Math.round(w * 2), Y, 1, 16);
+    if (at(tx + 1, ty) !== 'S') R(ctx, '#e8fbf6', X + 15 - Math.round(w * 2), Y, 1, 16);
+  }
 }
 function render(t) {
   const vw = cv.width, vh = cv.height, mw = cur.w * 16, mh = cur.h * 16;
-  cam.x = mw > vw ? Math.max(0, Math.min(mw - vw, Math.round(P.px + 8 - vw / 2))) : Math.round((mw - vw) / 2);
-  cam.y = mh > vh ? Math.max(0, Math.min(mh - vh, Math.round(P.py + 8 - vh / 2))) : Math.round((mh - vh) / 2);
-  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, vw, vh);
+  cam.x = (mw > vw) ? Math.max(0, Math.min(mw - vw, Math.round(P.px + 8 - vw / 2))) : Math.round((mw - vw) / 2);
+  cam.y = (mh > vh) ? Math.max(0, Math.min(mh - vh, Math.round(P.py + 8 - vh / 2))) : Math.round((mh - vh) / 2);
+  ctx.fillStyle = cur.bg || '#000';
+  ctx.fillRect(0, 0, vw, vh);
   ctx.drawImage(cur.ground, -cam.x, -cam.y);
+  if (cur.sea) drawSeaFX(t);
 
-  const list = [...cur.objects, ...[P, ...cur.npcs].map(e => ({ ent: e, base: e.py + 16 }))].sort((a, b) => a.base - b.base);
-  for (const o of list) {
-    if (o.ent) drawEnt(o.ent);
-    else if (o.draw) o.draw(ctx, o.x - cam.x, o.y - cam.y, t);
-    else ctx.drawImage(o.img, o.x - cam.x, o.y - cam.y);
+  const list = cur.objects.slice();
+  [P].concat(cur.npcs).forEach(function (e) { list.push({ ent: e, base: e.py + 16 }); });
+  list.sort(function (a, b) { return a.base - b.base; });
+  list.forEach(function (o) {
+    if (o.broken) return;
+    try {
+      if (o.ent) drawEnt(o.ent);
+      else if (o.draw) o.draw(ctx, o.x - cam.x, o.y - cam.y, t);
+      else {
+        const x = o.x - cam.x, y = o.y - cam.y;
+        if (x > vw || y > vh || x + o.img.width < 0 || y + o.img.height < 0) return;
+        ctx.drawImage(o.img, x, y);
+      }
+    } catch (err) {
+      o.broken = true;
+      ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+      window.showErr('그림 오류: ' + err.message);
+    }
+  });
+
+  if (cur.id === 'bamboo') {
+    const fx = 144 - cam.x, fy = 144 - cam.y;
+    const gr = ctx.createRadialGradient(fx, fy, 40, fx, fy, 150);
+    gr.addColorStop(0, 'rgba(10,18,8,0)');
+    gr.addColorStop(1, 'rgba(10,18,8,0.6)');
+    ctx.fillStyle = gr;
+    ctx.fillRect(0, 0, vw, vh);
   }
 
   if (tint[0] < 254 || tint[1] < 254 || tint[2] < 254) {
     ctx.globalCompositeOperation = 'multiply';
-    ctx.fillStyle = `rgb(${tint[0] | 0},${tint[1] | 0},${tint[2] | 0})`;
+    ctx.fillStyle = 'rgb(' + Math.round(tint[0]) + ',' + Math.round(tint[1]) + ',' + Math.round(tint[2]) + ')';
     ctx.fillRect(0, 0, vw, vh);
     ctx.globalCompositeOperation = 'lighter';
-    for (const L of cur.lights) {
-      const x = L.x - cam.x, y = L.y - cam.y, a = 0.55 * tint[3];
-      const g = ctx.createRadialGradient(x, y, 0, x, y, L.r);
-      g.addColorStop(0, `rgba(255,190,110,${a})`); g.addColorStop(1, 'rgba(255,190,110,0)');
-      ctx.fillStyle = g; ctx.fillRect(x - L.r, y - L.r, L.r * 2, L.r * 2);
-    }
+    cur.lights.forEach(function (L) {
+      const fl = L.flicker ? 1 + Math.sin(t * 9) * 0.04 + Math.sin(t * 23) * 0.03 : 1;
+      const r = Math.max(1, L.r * fl), x = L.x - cam.x, y = L.y - cam.y;
+      const a = Math.max(0, Math.min(1, (L.a || 0.55) * tint[3])).toFixed(3);
+      const col = L.color || '255,190,110';
+      const gr = ctx.createRadialGradient(x, y, 0, x, y, r);
+      gr.addColorStop(0, 'rgba(' + col + ',' + a + ')');
+      gr.addColorStop(1, 'rgba(' + col + ',0)');
+      ctx.fillStyle = gr;
+      ctx.fillRect(x - r, y - r, r * 2, r * 2);
+    });
     ctx.globalCompositeOperation = 'source-over';
   }
 }
 function update(dt) {
   updatePlayer(dt);
   updateNPCs(dt);
-  if (dlg.active) { dlg.shown = Math.min(dlg.full.length, dlg.shown + dt * 40); $('dtext').textContent = dlg.full.slice(0, dlg.shown | 0); }
+  if (dlg.active) {
+    dlg.shown = Math.min(dlg.full.length, dlg.shown + dt * 40);
+    $('dtext').textContent = dlg.full.slice(0, Math.floor(dlg.shown));
+  }
   const ph = phase();
   let tp = TINT[ph];
-  if (cur.id === 'house') tp = ph === 'night' ? [215, 205, 230, 0.5] : ph === 'sunset' ? [255, 235, 215, 0.2] : [255, 255, 255, 0];
-  tint = tint.map((v, i) => v + (tp[i] - v) * Math.min(1, dt * 2));
+  if (cur.id === 'house') {
+    if (ph === 'night') tp = [215, 205, 230, 0.5];
+    else if (ph === 'sunset') tp = [255, 235, 215, 0.2];
+    else tp = [255, 255, 255, 0];
+  } else if (cur.id === 'bamboo') {
+    tp = (ph === 'night') ? [64, 66, 110, 1] : [245, 165, 125, 0.85];   // 숲 안은 늘 노을빛
+  }
+  tint = tint.map(function (v, i) { return v + (tp[i] - v) * Math.min(1, dt * 2); });
   if (ph !== lastPhase) { lastPhase = ph; if (state === 'play') updateMusic(); updateClock(); }
   updateHUD();
 }
 let last = performance.now();
 function loop(now) {
-  const dt = Math.min(0.05, (now - last) / 1000); last = now;
-  update(dt); render(now / 1000);
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  try { update(dt); render(now / 1000); }
+  catch (err) { ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; window.showErr('오류: ' + err.message); }
   requestAnimationFrame(loop);
 }
 requestAnimationFrame(loop);
+// ROOFTOUCH-END
 </script>
 </body>
 </html>
