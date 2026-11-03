@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>ROOF TOUCH HOUSE ARCHIVE</title>
+<title>kimyeongsu ARCHIVE</title>
 <script>
 window.showErr = function (msg) {
   var box = document.getElementById('errbox');
@@ -129,7 +129,7 @@ body.touch #pad{display:block;}
 const SITE = {
   insta: 'https://www.instagram.com/roof_touch_house/',
   instaId: '@roof_touch_house',
-  email: 'your@email.com'
+  email: 'kimzxcvb123@naver.com'
 };
 
 const INSTA_POSTS = [];
@@ -137,9 +137,9 @@ const INSTA_POSTS = [];
 const ARCHIVE = {
   hallasan: { no: '머리닿는 집', type: '제주', title: '한라산 원정대', date: '2026년 3월', images: [], post: '',
               desc: '사람들을 모아 눈덮인 한라산을 오른 기록입니다.' },
-  camp:     { no: '숨섬쉼', type: '제주', title: '대나무숲 바베큐', date: '2025년 여름', images: [], post: '',
-              desc: '아무도 없는 경주마 목장 속 대나무 숲에서 우리들만의 바베큐와 캠프파이어.' },
-  goods:    { no: '숨섬쉼', type: '서울', title: '클로징파티', date: '2025년 11월', images: [], post: '',
+  camp:     { no: '숨쉼섬', type: '제주', title: '대나무숲 바베큐', date: '2025년 여름내내', images: [], post: '',
+              desc: '아무도 없는 경주마 목장 대나무 숲에서 바베큐와 캠프파이어.' },
+  goods:    { no: '숨쉼섬', type: '서울', title: '클로징 파티', date: '2025년 11월 8일', images: [], post: '',
               desc: '직접 만든 굿즈 아직도 다 안팔림.\n구매문의 DM 주세요...' },
   work1:    { no: '04', type: '오프라인 프로젝트', title: '개인 프로젝트 1', date: '', images: [], post: '', desc: '(설명을 입력하세요)' },
   work2:    { no: '05', type: '오프라인 프로젝트', title: '개인 프로젝트 2', date: '', images: [], post: '', desc: '(설명을 입력하세요)' },
@@ -1012,7 +1012,7 @@ function buildTownCore() {
     { x: 9, y: 4, w: 2, h: 1, kind: 'archive', key: 'hallasan' },
     { x: 11, y: 6, w: 1, h: 1, kind: 'dialog', lines: ['↑ 한라산 등산로', '16명이서 다함께 올랐던 날의 기록이 이 길 끝에 있어요.'] },
     { x: 23, y: 10, w: 4, h: 1, kind: 'archive', key: 'goods', up: 1 },
-    { x: 14, y: 13, w: 1, h: 1, kind: 'dialog', lines: ['머리 닿는 집', '김영수가 살면서, 사람들을 모아 캠프를 진행한 50년된 구옥.', '집 안에 들어가 기록들을 살펴보세요!'] },
+    { x: 14, y: 13, w: 1, h: 1, kind: 'dialog', lines: ['머리 닿는 집', '김영수가 직접 고치고 꾸며 사람들을 모아 캠프를 진행한 50년된 구옥.', '집 안에 들어가 기록들을 살펴보세요!'] },
     { x: 19, y: 12, w: 1, h: 1, kind: 'contact', up: 1 },
     { x: 21, y: 13, w: 1, h: 1, kind: 'insta' },
     { x: 7, y: 17, w: 1, h: 1, kind: 'dialog', up: 3, lines: ['「구두미 포구」', '커다란 비석에 세로로 새겨져 있다.'] },
@@ -1021,8 +1021,8 @@ function buildTownCore() {
       lines: ['물 진짜 맑다~ 둥둥…', '(튜브에 몸을 맡긴 채 파도를 타고 있다)'] }
   ];
   map.npcs = [
-    npc(22, 18, SPR.npc1, ['안녕! 여긴 000 마을이야.', '김영수가 진행한 프로젝트들을 모아둔 마을이지.', '자유롭게 구경해 봐!']),
-    npc(6, 9, SPR.npc2, ['대나무 숲 안에 들어가봐. 숨섬쉼에서의 기록들이 있을 거야.', '이동할 때 Shift(모바일은 B)를 누르고 있으면 달릴 수 있어!'], { stay: true })
+    npc(22, 18, SPR.npc1, ['안녕! 여긴 000 마을이야.', '김영수가 진행한 프로젝트들을 모아둔 마을이지.', '자유롭게 구경해 봐!', '아! 이동할 때 Shift(모바일은 B)를 누르면 달릴 수 있어!']),
+    npc(6, 9, SPR.npc2, ['대나무 숲 안에 들어가봐. 숨쉼섬에서의 추억들을 볼 수 있어!'], { stay: true })
   ];
   map.lights = [
     { x: 12 * 16 + 8, y: 16 * 16 + 4, r: 44 }, { x: 19 * 16 + 8, y: 16 * 16 + 4, r: 44 },
@@ -1094,14 +1094,14 @@ function buildBamboo() {
   o.push({ img: IMG.tires[1], x: 4 * 16 - 1, y: 8 * 16 - 20, base: 128 });     // 바깥쪽(아래) 무더기 — 일자로 안 놓고 살짝 비껴서
   o.push({ draw: drawGrill, x: 12 * 16, y: 7 * 16 - 26, base: 112 });
   map.objects = o;
-  const LOG = ['통나무 의자. 다들 여기 앉아 노래를 들었다.'];
+  const LOG = ['통나무 그루터기. 다들 여기 앉아 노래를 들었다.'];
   map.acts = [
     { x: 8, y: 8, w: 2, h: 2, kind: 'archive', key: 'camp', up: 1 },
     { x: 12, y: 6, w: 2, h: 1, kind: 'archive', key: 'camp', up: 1 },
-    { x: 8, y: 6, w: 2, h: 1, kind: 'talk', up: 1, lines: ['♪ ~ ♬ ~', '(눈을 감고 기타를 치며 노래하고 있다…)'] },
-    { x: 4, y: 6, w: 1, h: 2, kind: 'dialog', up: 1, lines: ['타이어 네 짝이 두 짝씩 쌓여 있다.'] },
-    { x: 7, y: 4, w: 4, h: 2, kind: 'dialog', lines: ['대나무 몇 대가 바닥에 눕혀져 있다.'] },
-    { x: 6, y: 5, w: 1, h: 1, kind: 'dialog', lines: ['그루터기에 도끼가 박혀 있다.'] },
+    { x: 8, y: 6, w: 2, h: 1, kind: 'talk', up: 1, lines: ['♪ ~ ♬ ~', '젊은 날엔 젊음을 모르고 ~ ♬', '사랑할 땐 사랑이 보이지 않았네 ~ ♪', '(웬 빡빡이가 기타를 치며 노래하고 있다…)'] },
+    { x: 4, y: 6, w: 1, h: 2, kind: 'dialog', up: 1, lines: ['갤로퍼 타이어', '이 위에도 앉았었지…'] },
+    { x: 7, y: 4, w: 4, h: 2, kind: 'dialog', lines: ['대나무 몇 대가 바닥에 쓰려져 있다.'] },
+    { x: 6, y: 5, w: 1, h: 1, kind: 'dialog', lines: ['통나무에 도끼가 박혀 있다.'] },
     { x: 7, y: 8, w: 1, h: 1, kind: 'dialog', lines: LOG },
     { x: 7, y: 10, w: 1, h: 1, kind: 'dialog', lines: LOG },
     { x: 10, y: 10, w: 1, h: 1, kind: 'dialog', lines: LOG },
