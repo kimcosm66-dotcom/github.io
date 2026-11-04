@@ -41,7 +41,7 @@ window.addEventListener('error', function (e) {
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;background:#000;overflow:hidden;overscroll-behavior:none;}
 body{font-family:'Galmuri11','Galmuri9',monospace;color:var(--ink);user-select:none;-webkit-user-select:none;}
-#game{position:fixed;left:0;top:0;image-rendering:pixelated;image-rendering:crisp-edges;touch-action:none;}
+#game{position:fixed;left:0;top:0;image-rendering:crisp-edges;image-rendering:pixelated;touch-action:none;}
 .box{background:var(--paper);border:4px solid var(--line);border-radius:8px;box-shadow:inset 0 0 0 3px #c8d8f0,0 4px 0 rgba(0,0,0,.3);}
 .btn{display:inline-block;font:inherit;font-size:13px;padding:8px 12px;background:var(--paper);border:3px solid var(--line);border-radius:6px;color:var(--ink);cursor:pointer;text-decoration:none;}
 .btn.primary{background:var(--orange);color:#fff;}
@@ -1803,12 +1803,13 @@ function tryMove(e, dir, map) {
   e.dir = dir;
   const dv = DIRV[dir], nx = e.x + dv.x, ny = e.y + dv.y;
   if (!canWalk(map, nx, ny, e)) return false;
-  e.moving = true; e.nx = nx; e.ny = ny; e.t = 0; e.flip = !e.flip;
+  e.moving = true; e.nx = nx; e.ny = ny; e.t = e.carry || 0; e.carry = 0; e.flip = !e.flip;
   return true;
 }
 function advanceMove(e, dt, speed) {
   e.t += dt * speed;
   if (e.t >= 1) {
+    e.carry = Math.min(0.6, e.t - 1);                                      // 남은 시간은 다음 칸에 이어서 씀
     e.x = e.nx; e.y = e.ny; e.moving = false; e.t = 0; e.px = e.nx * 16; e.py = e.ny * 16;
     return true;
   }
@@ -1832,10 +1833,10 @@ function updatePlayer(dt) {
   }
   if (locked()) return;
   const d = inputDir();
-  if (!d) { P.idle = true; return; }
-  if (P.idle && d !== P.dir) { P.dir = d; P.turnT = 0.1; P.idle = false; return; }
+  if (!d) { P.idle = true; P.carry = 0; return; }
+  if (P.idle && d !== P.dir) { P.dir = d; P.turnT = 0.1; P.idle = false; P.carry = 0; return; }
   P.idle = false;
-  if (P.turnT > 0) { P.turnT -= dt; return; }
+  if (P.turnT > 0) { P.turnT -= dt; P.carry = 0; return; }
   tryMove(P, d, cur);
 }
 function checkTrigger() {
@@ -1894,7 +1895,7 @@ function actOn(a) { return !a.cond || a.cond(); }
 function say(lines, done) {
   if (typeof lines === 'function') lines = lines();
   dlg.active = true; dlg.lines = lines; dlg.i = 0; dlg.done = done || null;
-  dlg.full = lines[0]; dlg.shown = 0;
+  dlg.full = lines[0]; dlg.shown = 0; dlg.last = -1;
   $('dialog').classList.add('show');
 }
 function advance() {
@@ -1905,7 +1906,7 @@ function advance() {
     const d = dlg.done; dlg.done = null;
     if (d) d();
   } else {
-    dlg.full = dlg.lines[dlg.i]; dlg.shown = 0;
+    dlg.full = dlg.lines[dlg.i]; dlg.shown = 0; dlg.last = -1;
   }
 }
 function findAct(fx, fy, useUp) {
@@ -2248,11 +2249,19 @@ function scheduleLoop(t0) {
   g.connect(master); gains.push(g);
   if (gains.length > 3) gains.shift();
   let len = 0;
-  tr.parts.forEach(function (p) {
+  tr.parts.forEach(function (p) {                                         // 파트마다 오실레이터 하나로 모든 음을 예약
+    const o = actx.createOscillator(), pg = actx.createGain();
+    o.type = p.wave; o.connect(pg); pg.connect(g);
+    pg.gain.setValueAtTime(0, t0);
     p.ev.forEach(function (e) {
       len = Math.max(len, e.t + e.l);
-      if (e.n !== 'r') tone(g, p.wave, freq(e.n), t0 + e.t * step, e.l * step * 0.85, p.vol);
+      if (e.n === 'r') return;
+      const t = t0 + e.t * step, d = e.l * step * 0.85, v = p.vol;
+      o.frequency.setValueAtTime(freq(e.n), t);
+      pg.gain.setValueAtTime(0, t); pg.gain.linearRampToValueAtTime(v, t + 0.01);
+      pg.gain.setValueAtTime(v, t + d * 0.7); pg.gain.linearRampToValueAtTime(0, t + d);
     });
+    o.start(t0); o.stop(t0 + len * step + 0.1);
   });
   const end = t0 + len * step;
   loopTimer = setTimeout(function () { scheduleLoop(end); }, Math.max(0, (end - actx.currentTime - 0.4) * 1000));
@@ -2332,9 +2341,10 @@ addEventListener('blur', function () { Object.keys(keys).forEach(function (k) { 
 
 const joy = $('joy'), knob = $('knob');
 let joyId = null;
+let joyR = null;
 function moveJoy(e) {
-  const r = joy.getBoundingClientRect();
-  let dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+  if (!joyR) { const r = joy.getBoundingClientRect(); joyR = { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }
+  let dx = e.clientX - joyR.x, dy = e.clientY - joyR.y;
   const d = Math.hypot(dx, dy), max = 34;
   if (d > max) { dx *= max / d; dy *= max / d; }
   knob.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
@@ -2342,9 +2352,9 @@ function moveJoy(e) {
   else if (Math.abs(dx) > Math.abs(dy)) joyDir = (dx > 0) ? 'right' : 'left';
   else joyDir = (dy > 0) ? 'down' : 'up';
 }
-joy.addEventListener('pointerdown', function (e) { joyId = e.pointerId; joy.setPointerCapture(e.pointerId); moveJoy(e); });
+joy.addEventListener('pointerdown', function (e) { joyR = null; joyId = e.pointerId; joy.setPointerCapture(e.pointerId); moveJoy(e); });
 joy.addEventListener('pointermove', function (e) { if (e.pointerId === joyId) moveJoy(e); });
-function endJoy(e) { if (e.pointerId !== joyId) return; joyId = null; joyDir = null; knob.style.transform = ''; }
+function endJoy(e) { if (e.pointerId !== joyId) return; joyId = null; joyR = null; joyDir = null; knob.style.transform = ''; }
 joy.addEventListener('pointerup', endJoy);
 joy.addEventListener('pointercancel', endJoy);
 
@@ -2374,10 +2384,14 @@ cv.addEventListener('pointerdown', function (e) {
    ========================================================= */
 let scale = 2;
 const cam = { x: 0, y: 0 };
+let rzW = 0, rzH = 0;
 function resize() {
+  if (innerWidth === rzW && innerHeight === rzH) return;
+  rzW = innerWidth; rzH = innerHeight;
   scale = Math.max(2, Math.floor(Math.min(innerWidth, innerHeight) / 150));
-  cv.width = Math.ceil(innerWidth / scale);
-  cv.height = Math.ceil(innerHeight / scale);
+  const nw = Math.ceil(innerWidth / scale), nh = Math.ceil(innerHeight / scale);
+  if (cv.width !== nw) cv.width = nw;
+  if (cv.height !== nh) cv.height = nh;
   cv.style.width = cv.width * scale + 'px';
   cv.style.height = cv.height * scale + 'px';
   ctx.imageSmoothingEnabled = false;
@@ -2728,8 +2742,9 @@ function drawEyes(t) {
 }
 function render(t) {
   const vw = cv.width, vh = cv.height, mw = cur.w * 16, mh = cur.h * 16;
-  cam.x = (mw > vw) ? Math.max(0, Math.min(mw - vw, Math.round(P.px + 8 - vw / 2))) : Math.round((mw - vw) / 2);
-  cam.y = (mh > vh) ? Math.max(0, Math.min(mh - vh, Math.round(P.py + 8 - vh / 2))) : Math.round((mh - vh) / 2);
+  const hx = vw >> 1, hy = vh >> 1;                                       // 정수 절반 + 반올림한 플레이어 위치 (카메라와 캐릭터가 같은 기준이라 떨리지 않음)
+  cam.x = (mw > vw) ? Math.max(0, Math.min(mw - vw, Math.round(P.px) + 8 - hx)) : Math.round((mw - vw) / 2);
+  cam.y = (mh > vh) ? Math.max(0, Math.min(mh - vh, Math.round(P.py) + 8 - hy)) : Math.round((mh - vh) / 2);
   ctx.fillStyle = cur.bg || '#000';
   ctx.fillRect(0, 0, vw, vh);
   ctx.drawImage(cur.ground, -cam.x, -cam.y);
@@ -2793,7 +2808,8 @@ function update(dt) {
   updateNPCs(dt);
   if (dlg.active) {
     dlg.shown = Math.min(dlg.full.length, dlg.shown + dt * 40);
-    $('dtext').textContent = dlg.full.slice(0, Math.floor(dlg.shown));
+    const sh = Math.floor(dlg.shown);
+    if (sh !== dlg.last) { dlg.last = sh; $('dtext').textContent = dlg.full.slice(0, sh); }
   }
   const ph = phase();
   let tp = TINT[ph];
@@ -2804,14 +2820,16 @@ function update(dt) {
   } else if (cur.id === 'bamboo') {
     tp = (ph === 'night') ? [64, 66, 110, 1] : [245, 165, 125, 0.85];   // 숲 안은 늘 노을빛
   }
-  tint = tint.map(function (v, i) { return v + (tp[i] - v) * Math.min(1, dt * 2); });
+  for (let i = 0; i < 4; i++) tint[i] += (tp[i] - tint[i]) * Math.min(1, dt * 2);
   if (ph !== lastPhase) { lastPhase = ph; if (state === 'play') updateMusic(); updateClock(); }
   updateHUD();
 }
-let last = performance.now();
+let last = performance.now(), dtAvg = 1 / 60;
 function loop(now) {
-  const dt = Math.min(0.05, (now - last) / 1000);
+  const raw = Math.min(0.05, Math.max(0, (now - last) / 1000));
   last = now;
+  dtAvg += (raw - dtAvg) * 0.35;                                           // 프레임 간격이 들쭉날쭉해도 움직임이 고르게
+  const dt = raw > 0.04 ? raw : dtAvg;
   try { update(dt); render(now / 1000); }
   catch (err) { ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; window.showErr('오류: ' + err.message); }
   requestAnimationFrame(loop);
