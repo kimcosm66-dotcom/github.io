@@ -41,6 +41,7 @@ window.addEventListener('error', function (e) {
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;background:#000;overflow:hidden;overscroll-behavior:none;}
 body{font-family:'Galmuri11','Galmuri9',monospace;color:var(--ink);user-select:none;-webkit-user-select:none;}
+html,body,*{touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
 #game{position:fixed;left:0;top:0;image-rendering:crisp-edges;image-rendering:pixelated;touch-action:none;}
 .box{background:var(--paper);border:4px solid var(--line);border-radius:8px;box-shadow:inset 0 0 0 3px #c8d8f0,0 4px 0 rgba(0,0,0,.3);}
 .btn{display:inline-block;font:inherit;font-size:13px;padding:8px 12px;background:var(--paper);border:3px solid var(--line);border-radius:6px;color:var(--ink);cursor:pointer;text-decoration:none;}
@@ -58,6 +59,7 @@ body{font-family:'Galmuri11','Galmuri9',monospace;color:var(--ink);user-select:n
 body.touch #prompt{bottom:calc(170px + env(safe-area-inset-bottom));}
 #dialog{position:fixed;left:10px;right:10px;bottom:calc(20px + env(safe-area-inset-bottom));max-width:640px;margin:0 auto;padding:14px 18px 20px;min-height:86px;font-size:15px;line-height:1.75;z-index:15;display:none;cursor:pointer;}
 #dialog.show{display:block;}
+#dtext{white-space:pre-line;}
 #dialog::after{content:'▼';position:absolute;right:14px;bottom:6px;font-size:10px;color:#e04030;animation:blink .7s steps(2) infinite;}
 body.touch #dialog{bottom:calc(170px + env(safe-area-inset-bottom));}
 @keyframes blink{50%{opacity:0}}
@@ -105,6 +107,13 @@ body.touch #pad{display:block;}
 .list .btn{text-align:left;}
 .list span{color:var(--orange);margin-right:8px;}
 #feed{margin-top:12px;}
+/* 낡은 일기장: 상세 창과 같은 구성, 종이만 납작하게 + 픽셀 계단식으로 찢긴 가장자리 */
+#sheet.paper{border:0;border-radius:0;box-shadow:none;padding:26px 24px;color:#3a2f22;background:#e4d6b4;background-image:linear-gradient(#d3c19a,#d3c19a),linear-gradient(#d3c19a,#d3c19a),linear-gradient(#cdb98e,#cdb98e),linear-gradient(#dccba6,#dccba6);background-size:44px 10px,18px 18px,30px 8px,60px 14px;background-position:78% 5%,96% 44%,88% 86%,20% 97%;background-repeat:no-repeat;}
+#sheet.paper .dhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:0 0 12px;white-space:nowrap;}
+#sheet.paper .dhead h2{font-size:14px;margin:0;}
+#sheet.paper .dwhen{font-size:12px;color:#7a5a30;}
+#sheet.paper .meta{color:#7a6a50;}
+#sheet.paper .empty{color:#d8d0b8;}
 .hint{font-size:12px;color:#888;line-height:1.8;margin-top:12px;}
 #title{position:fixed;inset:0;z-index:40;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;background:linear-gradient(#88c8f0 62%,#78c878 62%);cursor:pointer;transition:opacity .5s;}
 #title.hide{opacity:0;pointer-events:none;}
@@ -284,7 +293,8 @@ function palette(extra) { return Object.assign({}, BASE_PAL, extra); }
 const SPR = {
   player: buildChar(palette({ O: '#f05a1e', H: '#503828', T: '#3070d0' })),
   npc1:   buildChar(palette({ O: '#48a048', H: '#303030', T: '#e8b830' })),
-  npc2:   buildChar(palette({ O: '#8858c8', H: '#a06030', T: '#e86878' }))
+  npc2:   buildChar(palette({ O: '#8858c8', H: '#a06030', T: '#e86878' })),
+  rancher: buildChar(palette({ O: '#e6c36a', W: '#a8702c', H: '#9a9a9a', S: '#d9a070', T: '#b8392b', N: '#3b5f94' }))   // 밀집모자 · 체크 셔츠 · 멜빵 청바지 목장 아저씨
 };
 
 // 말 (옆모습, 3프레임: 서 있기 / 걷기 a / 걷기 b)
@@ -418,13 +428,15 @@ function buildDeer(kind) {
     const sw = (f === 1) ? 1 : (f === 2) ? -1 : 0;
 
     const ap = [], apu = function (x, y, c) { ap.push([Math.round(x), Math.round(y + oy), c]); };
-    const antler = function (ox, oy2, far) {                                          // 크고 화려한 뿔: 굵은 줄기 + 여러 갈래
+    const antler = function (ox, oy2, far) {                                          // 순록처럼 옆으로 넓게 뻗은 뿔: 뒤로 휘는 큰 줄기 + 앞으로 뻗는 줄기 + 갈래
       const C = far ? '#b89a64' : '#efdca4', D = far ? '#8e6e3c' : '#b98a48';
-      const beam = [[0,4],[0,3],[0,2],[0,1],[0,0],[0,-1],[0,-2],[0,-3],[0,-4],[1,-5],[1,-6],[1,-7],[1,-8]];
-      const fx = far ? -3 : 0, fy = far ? 1 : 0;
-      beam.forEach(function (q) { apu(ox + q[0] + fx, oy2 + q[1] + fy, C); apu(ox + q[0] + fx + 1, oy2 + q[1] + fy, D); });
-      const tines = [[[2,1],[3,0],[4,-1]], [[2,-2],[3,-3],[4,-4]], [[3,-5],[4,-6],[5,-7]], [[0,-8],[-1,-9]], [[3,-8],[4,-9]]];
-      tines.forEach(function (t) { t.forEach(function (q, i) { apu(ox + q[0] + fx, oy2 + q[1] + fy, D); }); });
+      const fx = far ? -2 : 0, fy = far ? 1 : 0;
+      const back = [[0,2],[0,1],[-1,0],[-2,-1],[-3,-2],[-4,-3],[-5,-4],[-6,-5],[-7,-6],[-8,-6]];
+      const fwd = [[0,0],[1,-1],[2,-2],[3,-3],[4,-4],[5,-5],[6,-6],[6,-7]];
+      [back, fwd].forEach(function (bm) { bm.forEach(function (q) { apu(ox + q[0] + fx, oy2 + q[1] + fy, C); apu(ox + q[0] + fx, oy2 + q[1] + fy + 1, D); }); });
+      const tines = [[[-2,-2],[-2,-3],[-2,-4]], [[-4,-4],[-4,-5],[-4,-6],[-5,-7]], [[-6,-6],[-6,-7],[-7,-8]],
+                     [[2,-3],[2,-4],[3,-5]], [[4,-5],[4,-6],[5,-7]], [[1,0],[2,0],[3,-1],[4,-1],[5,-2]], [[5,-8],[7,-8]]];
+      tines.forEach(function (t) { t.forEach(function (q) { apu(ox + q[0] + fx, oy2 + q[1] + fy, D); }); });
     };
     if (!fawn) {
       const gy = 24;                                                             // 발이 닿는 줄
@@ -444,7 +456,7 @@ function buildDeer(kind) {
         ell(17.5, 8.8, 1.5, 4.2, FUR); put(18, 9, CRM); put(18, 10, CRM); put(17, 11, CRM);
         ell(21.5, 5.6, 2.8, 2, FUR); ell(24.3, 6.5, 1.8, 1.3, LT); rect(26, 6, 1, 2, NS); put(22, 5, LN);
         ell(19, 3, 1.2, 2.3, FUR); put(19, 3, EAR); put(19, 4, EAR); ell(21.8, 2, 1, 1.8, SH);
-        if (buck) { antler(21, 2, true); antler(22, 2, false); }
+        if (buck) { antler(21, 2, true); antler(22, 2, false); apu(22, 5, '#120804'); apu(23, 5, '#120804'); apu(22, 4, '#8a5626'); apu(23, 4, '#8a5626'); }   // 뿔이 눈을 덮지 않게 눈을 맨 위에 다시 그림
       } else if (f === 3) {                                                        // 고개를 숙이고 풀을 뜯음
         ell(18, 11, 2.4, 3.2, FUR); ell(20, 15, 2.2, 3, FUR); put(19, 13, CRM);
         ell(23, 19.5, 3.2, 2.2, FUR); ell(25.8, 21, 1.8, 1.4, LT); rect(27, 20, 1, 2, NS); put(23, 18, LN);
@@ -454,7 +466,7 @@ function buildDeer(kind) {
         ell(17.5, 15, 2.4, 3.6, FUR); put(18, 16, CRM);
         ell(20.5, 11, 3.2, 2.3, FUR); ell(23.5, 12, 1.9, 1.5, LT); rect(25, 11, 1, 2, NS); rect(21, 10, 2, 1, LN);
         ell(18, 8, 1.2, 2.2, FUR); put(18, 8, EAR); ell(20.6, 7, 1, 1.8, SH);
-        if (buck) { antler(20, 7, true); antler(22, 7, false); }
+        if (buck) { antler(20, 7, true); antler(22, 7, false); apu(21, 10, '#120804'); apu(22, 10, '#120804'); }
       }
     } else {                                                                        // 새끼
       if (f < 4) {
@@ -1004,6 +1016,39 @@ function makeKitchen() {                                                        
 }
 function drawHolyLand(g, x, y, t) {
   g.drawImage(IMG.holy, x, y);
+  if (typeof HLD !== 'undefined' && HLD.open > 0.01) {                                   // 현관문처럼 왼쪽 문짝이 경첩을 축으로 바깥(앞)으로 열림
+    const o = HLD.open, e = o * o * (3 - 2 * o);                                            // 부드럽게 가속·감속
+    const FX = 43, FY = 52, FH = 32, LWID = 20;                                             // 왼쪽 문짝 원래 위치(x43~62, y52~84)
+    const th = e * 0.9, cs = Math.cos(th), sn = Math.sin(th);                               // 최대 약 52도
+    const lw = Math.max(2, Math.round(LWID * cs)), grow = 4.5 * sn;                         // 폭은 줄고, 바깥쪽 끝은 가까워져 위아래로 커짐
+    const bx = x + FX, by = y + FY;
+    // 문짝 뒤로 보이는 어두운 안쪽
+    R(g, '#0b0806', bx, by, LWID, FH);
+    for (let i = 0; i < FH; i++) { const c = Math.round(11 + i * 0.5); R(g, 'rgb(' + (c + 6) + ',' + (c + 2) + ',' + c + ')', bx, by + i, LWID, 1); }
+    R(g, '#2c2014', bx, by + FH - 6, LWID, 6); R(g, '#45331c', bx + 1, by + FH - 3, LWID - 2, 3);   // 안쪽 바닥
+    // 안쪽에서 새어나오는 불빛 + 문 앞 바닥에 비치는 빛
+    const night = phase() === 'night', la = (night ? 0.2 : 0.07) * e;
+    g.fillStyle = 'rgba(255,214,140,' + la.toFixed(3) + ')';
+    for (let r = 0; r < 9; r++) g.fillRect(bx + lw - 1 - r * 0.6, by + FH + r, Math.max(1, LWID - lw + 2 + r * 1.3), 1);
+    // 열린 문이 드리우는 바닥 그림자
+    g.fillStyle = 'rgba(0,0,0,0.38)';
+    g.fillRect(bx, by + FH, lw + 1, 1); g.fillRect(bx + 1, by + FH + 1, Math.max(1, lw - 1), 1);
+    // 사다리꼴 문짝 (원래 문과 같은 판자 무늬를 원근에 맞춰 눌러 그림, 열릴수록 어두워짐)
+    const dim = 1 - 0.4 * sn;
+    const shade = function (hex) { const n = parseInt(hex.slice(1), 16); return 'rgb(' + Math.round((n >> 16) * dim) + ',' + Math.round(((n >> 8) & 255) * dim) + ',' + Math.round((n & 255) * dim) + ')'; };
+    for (let i = 0; i < lw; i++) {
+      const u = lw > 1 ? i / (lw - 1) : 1, ext = Math.round(grow * u), tx = Math.min(LWID - 1, Math.floor(i / cs));
+      const col = (tx % 5 === 0) ? '#573419' : (tx % 10 === 2 ? '#865a34' : '#6e4526');
+      R(g, shade(col), bx + i, by - ext, 1, FH + ext * 2);
+      R(g, shade('#8a5a32'), bx + i, by - ext, 1, 1);                                        // 문짝 윗면 하이라이트
+    }
+    R(g, '#241709', bx + lw - 1, by - Math.round(grow), 1, FH + Math.round(grow) * 2);        // 문짝 끝 두께(어두운 테두리)
+    if (lw > 4) R(g, shade('#9a6c3e'), bx + lw - 2, by - Math.round(grow) + 1, 1, FH + Math.round(grow) * 2 - 2);   // 끝단 빛 받는 면
+    const hy = by + 16 - Math.round(grow * 0.4);                                             // 손잡이 (문짝 끝 쪽)
+    R(g, '#8a8a90', bx + Math.max(1, lw - 4), hy, 1, Math.max(2, Math.round(4 * (1 + grow * 0.06))));
+    R(g, '#241709', bx, by + 4, 1, 3); R(g, '#241709', bx, by + FH - 6, 1, 3);               // 경첩
+    if (e > 0.02) R(g, 'rgba(0,0,0,0.3)', bx, by - 2, lw, 2);                                 // 처마 아래 그늘
+  }
   if (phase() === 'night') {                                                           // 밤: 글자 사이 전등만 은은하게 켜짐
     const p = 0.92 + Math.sin(t * 2.2) * 0.04;
     for (let r = 9; r >= 3; r--) { g.fillStyle = 'rgba(255,226,150,' + (0.045 * p * (10 - r)).toFixed(3) + ')'; for (let yy = -r; yy <= r; yy++) for (let xx = -r; xx <= r; xx++) if (xx * xx + yy * yy <= r * r) g.fillRect(x + 64 + xx, y + 29 + yy, 1, 1); }
@@ -1265,6 +1310,31 @@ function drawSinger(g, x, y, t) {
     g.globalAlpha = 1;
   }
 }
+// 그릴 뒤에서 고기를 굽는 키 큰 남자 (노란 단발 + 초록 스냅백). 가끔 집게로 고기를 뒤집음
+function drawGriller(g, x, y, t) {
+  const bob = Math.round(Math.sin(t * 2.4) * 0.6), flip = (Math.floor(t * 1.4) % 4) === 3, hop = flip ? -1 : 0;
+  const yy = y + bob + hop;
+  const GREEN = '#1c7a32', GD = '#115226', BRIM = '#16672a', HAIR = '#f2d23c', HD = '#c9a21e', SK = '#f2c29a', SKD = '#d69e78', OUT = '#2a2418';
+  // 스냅백 (납작한 챙 + 뒤가 트인 초록 모자)
+  R(g, OUT, x + 4, yy + 0, 8, 1); R(g, GREEN, x + 5, yy + 1, 6, 1); R(g, OUT, x + 3, yy + 1, 1, 3); R(g, OUT, x + 12, yy + 1, 1, 3);
+  R(g, GREEN, x + 4, yy + 2, 8, 2); R(g, GD, x + 4, yy + 3, 8, 1); R(g, '#e8f5ea', x + 7, yy + 2, 2, 1);
+  R(g, OUT, x + 2, yy + 4, 12, 1); R(g, BRIM, x + 3, yy + 4, 10, 1); R(g, GD, x + 3, yy + 5, 10, 1);       // 납작한 챙
+  // 노란 단발 (귀밑으로 내려오는 길이, 앞머리)
+  R(g, HAIR, x + 3, yy + 5, 2, 7); R(g, HAIR, x + 11, yy + 5, 2, 7); R(g, HD, x + 3, yy + 10, 2, 2); R(g, HD, x + 11, yy + 10, 2, 2);
+  R(g, OUT, x + 2, yy + 5, 1, 7); R(g, OUT, x + 13, yy + 5, 1, 7); R(g, OUT, x + 3, yy + 12, 2, 1); R(g, OUT, x + 11, yy + 12, 2, 1);
+  R(g, HAIR, x + 5, yy + 6, 6, 1); R(g, HD, x + 5, yy + 6, 1, 1); R(g, HD, x + 10, yy + 6, 1, 1);
+  // 얼굴
+  R(g, SK, x + 5, yy + 7, 6, 5); R(g, SKD, x + 5, yy + 11, 6, 1);
+  R(g, '#282830', x + 6, yy + 9, 1, 1); R(g, '#282830', x + 9, yy + 9, 1, 1); R(g, '#c47a5a', x + 7, yy + 10, 2, 1);
+  R(g, SK, x + 7, yy + 12, 2, 1);                                                                          // 목
+  // 상체: 흰 티 + 검은 앞치마 (어깨가 넓고 키가 큼)
+  R(g, OUT, x + 2, yy + 13, 12, 1); R(g, '#ececf0', x + 3, yy + 13, 10, 11); R(g, '#c8c8d0', x + 3, yy + 17, 10, 1);
+  R(g, '#2d2d33', x + 5, yy + 14, 6, 10); R(g, '#2d2d33', x + 5, yy + 13, 1, 1); R(g, '#2d2d33', x + 10, yy + 13, 1, 1);
+  // 팔 + 집게
+  R(g, SK, x + 2, yy + 14, 1, 7); R(g, '#ececf0', x + 2, yy + 14, 1, 2); R(g, SK, x + 13, yy + 14, 1, 5); R(g, '#ececf0', x + 13, yy + 14, 1, 2);
+  if (!flip) { R(g, SK, x + 13, yy + 19, 2, 2); R(g, '#c8c8cc', x + 15, yy + 19, 1, 4); R(g, '#c8c8cc', x + 14, yy + 22, 2, 1); }
+  else { R(g, SK, x + 14, yy + 12, 1, 3); R(g, '#c8c8cc', x + 15, yy + 8, 1, 5); R(g, '#c0604a', x + 14, yy + 6, 3, 2); R(g, '#f0d0b8', x + 15, yy + 6, 1, 1); }
+}
 // 그릴 숯불 + 연기
 function drawGrill(g, x, y, t) {
   g.drawImage(IMG.grill, x, y);
@@ -1499,6 +1569,18 @@ function buildGround(map) {
           R(g, '#f07848', X + 3, Y + 4, 3, 1); R(g, '#f07848', X + 4, Y + 3, 1, 3); R(g, '#f8e070', X + 4, Y + 4);
           R(g, '#f07848', X + 10, Y + 10, 3, 1); R(g, '#f07848', X + 11, Y + 9, 1, 3); R(g, '#f8e070', X + 11, Y + 10);
         }
+      }
+    } else if (map.id === 'mansion') {
+      if (ch === 'B') { R(g, '#0c120c', X, Y, 16, 16); }
+      else if (ch === 'p' || ch === 'Q') {
+        R(g, '#2a2c22', X, Y, 16, 16); R(g, '#4a4a3c', X + 2 + hh % 5, Y + 2, 7, 5); R(g, '#3a3a2e', X + 4 + (hh >>> 3) % 6, Y + 9, 8, 5); R(g, '#5a5a4a', X + 3 + hh % 5, Y + 2, 4, 1);
+        for (let i = 0; i < 5; i++) { const gx = X + ((hh >>> (i * 4)) % 15), gy = Y + ((hh >>> (i * 4 + 2)) % 13); R(g, i % 2 ? '#2f5a2e' : '#1e3a1e', gx, gy, 1, 3); R(g, '#4a8040', gx + 1, gy + 1, 1, 2); }   // 돌 틈에서 자란 풀
+        if (ch === 'Q') R(g, 'rgba(0,0,0,0.35)', X, Y, 16, 16);
+      } else {
+        R(g, '#1c2c20', X, Y, 16, 16);
+        if (at(tx - 1, ty) === 'B' || at(tx + 1, ty) === 'B' || at(tx, ty + 1) === 'B') R(g, 'rgba(0,0,0,0.28)', X, Y, 16, 16);          // 숲 가장자리는 더 어둡게
+        for (let i = 0; i < 4; i++) { const ax = X + ((hh >>> (i * 5)) % 14) + 1, ay = Y + ((hh >>> (i * 5 + 2)) % 12) + 3; R(g, '#13201a', ax, ay, 1, 3); R(g, '#2e4a34', ax + 2, ay + 1, 1, 2); }
+        if (hh % 3 === 0) { R(g, '#142418', X + 3, Y + 5, 10, 6); R(g, '#24402c', X + 4, Y + 4, 2, 2); R(g, '#24402c', X + 9, Y + 4, 2, 2); R(g, '#24402c', X + 6, Y + 3, 3, 2); }   // 웃자란 풀덤불
       }
     } else if (map.id === 'bamboo') {
       if (ch === 'B') {
@@ -1757,6 +1839,7 @@ function buildBamboo() {
   gset(m, 6, 5, 'X');                                         // 도끼 꽂힌 그루터기
   setList(m, '4,6 4,7', 'X');                                 // 타이어 (2개씩 두 무더기, 세로로)
   fill(m, 12, 6, 2, 1, 'X');                                  // 그릴
+  fill(m, 12, 5, 2, 1, 'X');                                  // 그릴 뒤에서 고기 굽는 남자
   const map = { id: 'bamboo', w: W, h: H, grid: m, bg: '#121a0e' };
   map.ground = buildGround(map);
   const o = [];
@@ -1776,10 +1859,12 @@ function buildBamboo() {
   o.push({ img: IMG.axeStump, x: 6 * 16 + 2, y: 6 * 16 - 30, base: 96 });
   o.push({ img: IMG.tires[0], x: 4 * 16 + 5, y: 7 * 16 - 20, base: 112 });     // 안쪽(위) 무더기
   o.push({ img: IMG.tires[1], x: 4 * 16 - 1, y: 8 * 16 - 20, base: 128 });     // 바깥쪽(아래) 무더기 — 일자로 안 놓고 살짝 비껴서
+  o.push({ draw: drawGriller, x: 12 * 16 + 8, y: 6 * 16 - 25, base: 100 });          // 그릴 바로 뒤(위쪽)에서 굽는 남자
   o.push({ draw: drawGrill, x: 12 * 16, y: 7 * 16 - 26, base: 112 });
   map.objects = o;
   const LOG = ['통나무 그루터기. 다들 여기 앉아 노래를 들었다.'];
   map.acts = [
+    { x: 12, y: 5, w: 2, h: 1, kind: 'talk', label: '고기 굽는 남자', lines: ['(노란 단발에 초록 스냅백을 쓴 키 큰 남자가 그릴 뒤에서 묵묵히 고기를 뒤집고 있다.)', '(집게 소리만 달그락, 지글지글…)'] },
     { x: 8, y: 8, w: 2, h: 2, kind: 'archive', key: 'camp', up: 1 },
     { x: 12, y: 6, w: 2, h: 1, kind: 'archive', key: 'camp', up: 1 },
     { x: 8, y: 6, w: 2, h: 1, kind: 'talk', up: 1, lines: ['♪ ~ ♬ ~', '젊은 날엔 젊음을 모르고 ~ ♬', '사랑할 땐 사랑이 보이지 않았네 ~ ♪', '(웬 빡빡이가 기타를 치며 노래하고 있다…)'] },
@@ -1802,6 +1887,321 @@ function buildBamboo() {
     { x: 13 * 16, y: 7 * 16 - 16, r: 34, a: 0.5, flicker: true, color: '255,110,60' }
   ];
   map.welcome = ['대나무 숲 안으로 들어왔다.', '모닥불 타는 소리와 기타 소리가 들려온다…'];
+  return map;
+}
+/* ===== 은혈(숨겨진 틈) 속 폐가 저택 ===== */
+let TREE_PX = null;
+function drawGrottoBush(g, x, y, t) {                                           // 은혈: 이웃한 두 나무의 잎이 꼭대기만 빼고 아래까지 이어져 한 덩어리 숲처럼 보임 (몸통은 그대로, 새 요소 없음) — x,y = 왼쪽 나무의 그림 좌표
+  if (!TREE_PX) {
+    const T = IMG.tree, d = T.getContext('2d').getImageData(0, 0, 16, 24).data; TREE_PX = [];
+    for (let r = 0; r < 24; r++) { const row = []; for (let c = 0; c < 16; c++) { const i = (r * 16 + c) * 4; row.push(d[i + 3] > 100 ? [d[i], d[i + 1], d[i + 2]] : null); } TREE_PX.push(row); }
+  }
+  const cov = function (r, px) { if (px >= 0 && px < 16 && TREE_PX[r][px]) return true; return px >= 16 && px < 32 && !!TREE_PX[r][px - 16]; };
+  const fill = {};
+  for (let r = 4; r <= 19; r++) for (let px = 4; px <= 28; px++) {
+    if (cov(r, px)) continue;
+    const dx = (px - 16) / 9;
+    if (r >= 5 + Math.round(dx * dx * 6)) fill[r + ',' + px] = 1;                // 두 나무 사이 틈을 꼭대기 바로 아래까지 채움 (가운데가 살짝 높은 완만한 곡선)
+  }
+  const M = '#22683c', D = '#154229', L = '#2e7c46';                                    // 덤불만 나무보다 한 단계 어둡게: 눈여겨보면 '저기 뭔가 있다' 싶게
+  Object.keys(fill).forEach(function (k) {
+    const p = k.split(','), r = +p[0], px = +p[1], topEdge = !fill[(r - 1) + ',' + px] && !cov(r - 1, px);
+    const nearA = cov(r, px - 1) && px - 1 < 16, nearB = cov(r, px + 1) && px + 1 >= 16;
+    let c = M;
+    if (topEdge) c = D;
+    else if (nearA) c = L;                                                         // 왼쪽 나무 쪽은 밝게
+    else if (nearB) c = D;                                                         // 오른쪽 나무 쪽은 어둡게 (나무 자체 음영과 맞춤)
+    R(g, c, x + px, y + r, 1, 1);
+  });
+  Object.keys(fill).forEach(function (k) {                                                                // 틈과 맞닿은 나무 윤곽선은 잎 색으로 덮어 이음매를 없앰
+    const p = k.split(','), r = +p[0], px = +p[1];
+    [-1, 1].forEach(function (d1) { const q = px + d1; if (!fill[r + ',' + q] && cov(r, q)) { const side = q < 16 ? TREE_PX[r][q] : TREE_PX[r][q - 16]; if (side && side[0] === 0x1f) R(g, D, x + q, y + r, 1, 1); } });
+  });
+}
+function drawMansion(g, x, y, t) {                                              // 176×100 폐가 (길·현관을 중심으로 좌우 대칭) (위에서 내려다본 구도: 큰 지붕면 + 돌출 현관 + 돌계단 + 둥근 탑)
+  const ROOF = '#6a2a32', ROOFD = '#4a1c24', ROOFL = '#8a444e', ROOFK = '#341216', WALL = '#b8b0a2', WALLD = '#8c8478', WALLS = '#d0c8b8', FR = '#d0c8b8', GL = '#0c1218', BR = '#7a4638', BRD = '#56302a', MOR = '#3a2a28', MOSS = '#4a5e38', VINE = '#2c4a28';
+  const rr = function (c, a, b, w, h) { R(g, c, x + a, y + b, w, h); };
+  const hs = function (a, b) { return hsh(a * 7 + 3, b * 11 + 5); };
+  const shingle = function (x0, y0, w, h, lean) {                               // 기와 지붕면: 가로줄 + 엇갈린 이음 + 빠진 기와
+    rr(ROOF, x0, y0, w, h);
+    for (let j = 0; j < h; j += 3) { rr(ROOFD, x0, y0 + j + 2, w, 1); for (let i = ((j / 3) % 2) * 3; i < w; i += 6) rr(ROOFD, x0 + i, y0 + j, 1, 2); if ((j / 3) % 2 === 0) rr(ROOFL, x0, y0 + j, w, 1); }
+  };
+  // 땅에 드리운 그림자
+  rr('#0e150f', 6, 90, 166, 9); rr('#121a14', 2, 94, 40, 5); rr('#121a14', 116, 94, 58, 5);
+  // 큰 지붕 (위에서 본 사다리꼴 + 용마루 + 모서리 선)
+  for (let j = 0; j < 40; j++) { const inset = Math.round((40 - j) * 0.32); const x0 = 22 + inset, w = 152 - inset * 2; rr(((j % 3) === 2) ? ROOFD : ((j % 6) === 0 ? ROOFL : ROOF), x0, 4 + j, w, 1); if (j % 3 === 0) for (let i = ((j / 3) % 2) * 3; i < w; i += 6) rr(ROOFD, x0 + i, 4 + j, 1, 2); }
+  for (let j = 0; j < 40; j++) { const inset = Math.round((40 - j) * 0.32); rr(ROOFK, 22 + inset, 4 + j, 1, 1); rr(ROOFK, 173 - inset, 4 + j, 1, 1); rr(ROOFL, 23 + inset, 4 + j, 1, 1); }   // 양끝 모서리 선(입체감)
+  rr(ROOFL, 35, 4, 126, 1); rr(ROOFK, 35, 5, 126, 1);                              // 용마루
+  rr(ROOFD, 86, 4, 4, 14); rr(ROOFL, 86, 4, 1, 14);                              // 가운데 내림마루
+  [[44, 33, 9, 3], [90, 36, 11, 4], [104, 18, 7, 3], [30, 28, 6, 3], [118, 30, 9, 3], [146, 24, 8, 3], [64, 22, 6, 3]].forEach(function (h) { rr('#1a0a10', h[0], h[1], h[2], h[3]); rr(ROOFK, h[0], h[1] + h[3], h[2], 1); });   // 기와 빠진 구멍
+  rr(MOSS, 58, 26, 8, 2); rr(MOSS, 96, 14, 6, 2); rr(MOSS, 40, 12, 7, 2); rr(MOSS, 112, 34, 6, 2); rr(MOSS, 140, 30, 7, 2); rr(MOSS, 128, 14, 6, 2);
+  // 지붕창 4개 (지붕 면 위로 튀어나온 뾰족 창: 양옆에 작은 지붕 경사면이 보임)
+  [40, 56, 72, 104, 120, 136].forEach(function (c, i) {
+    const a = c - 7;
+    for (let j = 0; j < 8; j++) { const w = 2 + j * 2; rr(FR, c - Math.min(7, w / 2), 28 + j, Math.min(14, w), 1); }
+    rr(ROOFD, a - 2, 28, 2, 18); rr(ROOFL, a - 1, 30, 1, 16); rr(ROOFD, a + 14, 28, 2, 18);   // 지붕창 양옆 경사면
+    rr(FR, a, 36, 14, 10); rr(WALLD, a + 12, 36, 2, 10); rr(GL, a + 3, 36, 8, 8); rr(FR, a + 6, 36, 2, 8); rr(FR, a + 3, 40, 8, 1); rr(ROOFK, a - 1, 46, 16, 1);
+  });
+  // 처마 (그림자가 벽에 드리움)
+  rr(ROOFK, 20, 44, 156, 2); rr(ROOFD, 20, 46, 156, 2); rr('rgba(0,0,0,0.3)', 22, 48, 152, 5);
+  // 1층 벽 (발코니 띠 + 벽돌)
+  rr(WALL, 24, 48, 150, 9); rr(WALLD, 24, 56, 150, 1); rr('rgba(0,0,0,0.22)', 24, 48, 150, 4);
+  [40, 56, 72, 104, 120, 136].forEach(function (c) { const a = c - 8; rr(WALL, a, 52, 16, 6); rr(WALLD, a, 56, 16, 2); rr(WALLS, a, 52, 16, 1); for (let k = 1; k < 16; k += 3) rr('#74706a', a + k, 54, 1, 3); });
+  rr(BR, 24, 58, 150, 32);
+  for (let j = 0; j < 32; j += 3) { rr(MOR, 24, 58 + j, 150, 1); for (let i = ((j / 3) % 2) * 4; i < 150; i += 8) rr(MOR, 24 + i, 58 + j, 1, 3); }
+  for (let i = 0; i < 90; i++) { const h = hs(i, 9); rr((h % 3) ? BRD : '#8a5444', 26 + (h % 146), 59 + ((h >>> 6) % 30), 3, 2); }
+  rr('rgba(0,0,0,0.28)', 24, 58, 150, 4);                                       // 처마 그림자
+  [[34, 12, 0], [50, 12, 1], [114, 12, 2], [130, 12, 3]].forEach(function (w) {   // 1층 유리창 4개
+    const a = w[0];
+    rr(FR, a - 1, 63, w[1] + 2, 27); rr(GL, a, 64, w[1], 26); rr('#1e3236', a, 64, w[1], 6); rr(FR, a + 5, 64, 2, 26); rr(FR, a, 76, w[1], 1);
+    if (w[2] === 0) { for (let k = 0; k < 4; k++) rr('#6a5030', a - 1, 66 + k * 6, w[1] + 2, 2); rr('#4a3420', a + 3, 64, 2, 26); }          // 판자로 막힘
+    rr('rgba(0,0,0,0.3)', a, 64, w[1], 3);
+    if (w[2] === 3) { rr('#e4dccb', a - 2, 62, w[1] + 4, 2); rr('#e4dccb', a - 2, 90, w[1] + 4, 1); rr('#e4dccb', a - 2, 62, 1, 29); rr('#e4dccb', a + w[1] + 1, 62, 1, 29); rr('#2c4852', a + 1, 70, 4, 5); rr('#2c4852', a + 8, 70, 3, 5); rr('#8aa0aa', a + 1, 65, 3, 1); rr('#8aa0aa', a + 8, 65, 2, 1); }   // 가려지지 않은 네모난 창: 흰 틀 + 유리 반사
+  });
+  // 왼쪽 둥근 탑 (원기둥 음영 + 원뿔 지붕을 위에서 본 모습)
+  rr(WALL, 2, 34, 24, 56); rr(WALLS, 4, 34, 4, 56); rr(WALLD, 18, 34, 8, 56); rr('#6c665a', 23, 34, 3, 56); rr('rgba(0,0,0,0.3)', 2, 34, 24, 6);
+  rr(BR, 2, 70, 24, 20); for (let j = 0; j < 20; j += 3) { rr(MOR, 2, 70 + j, 24, 1); for (let i = ((j / 3) % 2) * 4; i < 24; i += 8) rr(MOR, 2 + i, 70 + j, 1, 3); } rr(BRD, 18, 70, 8, 20);
+  rr(FR, 9, 46, 8, 14); rr(GL, 10, 47, 6, 12); rr(FR, 12, 47, 1, 12); rr('#8a8a7a', 13, 49, 1, 1); rr('#8a8a7a', 14, 50, 1, 1);
+  rr(WALLD, 2, 62, 24, 1);
+  for (let j = 0; j < 28; j++) { const hw = Math.round(j * 15 / 28); const L0 = 14 - hw, R0 = 14 + hw; rr(((j % 4) === 3) ? ROOFD : ROOFL, L0, 6 + j, 1 + Math.floor(hw * 0.9), 1); rr(((j % 4) === 3) ? ROOFK : ROOFD, L0 + 1 + Math.floor(hw * 0.9), 6 + j, R0 - L0 - Math.floor(hw * 0.9), 1); }   // 밝은 쪽/어두운 쪽 원뿔면
+  rr(ROOFK, -1, 33, 30, 2); rr('rgba(0,0,0,0.3)', 0, 35, 28, 3);
+  rr('#1a0a10', 10, 20, 4, 3); rr(MOSS, 17, 26, 4, 1);
+  // 현관 (길 가운데 = 건물 가운데, x 88): 납작한 작은 차양 + 가느다란 기둥 + 돌계단 (뾰족한 박공 없음)
+  rr(WALLD, 70, 52, 36, 2); rr(ROOFK, 70, 54, 36, 2); rr(ROOF, 70, 49, 36, 4); rr(ROOFL, 70, 49, 36, 1); rr(ROOFD, 70, 52, 36, 1);
+  rr('rgba(0,0,0,0.35)', 72, 56, 32, 6);
+  rr(BRD, 74, 56, 28, 34); rr('#0a0e12', 78, 58, 20, 32);
+  rr(FR, 78, 58, 20, 2); rr(FR, 78, 58, 2, 32); rr(FR, 96, 58, 2, 32);
+  rr(GL, 81, 62, 6, 28); rr('#05080c', 89, 62, 7, 28); rr('#1c2c34', 81, 62, 6, 5); rr('#6a4a30', 87, 76, 2, 2);   // 낡은 문 (오른쪽 문짝이 살짝 열려 새까맘)
+  [[71, 2], [102, 2]].forEach(function (p) { rr(WALL, p[0], 56, 3, 34); rr(WALLD, p[0] + 2, 56, 1, 34); rr('#7a7468', p[0] - 1, 88, 5, 2); });
+  rr('#6e6e64', 70, 90, 36, 3); rr('#6e6e64', 66, 93, 44, 3); rr('#6e6e64', 62, 96, 52, 3);   // 돌계단 (아래로 갈수록 넓어짐)
+  rr('#8a8a80', 70, 90, 36, 1); rr('#8a8a80', 66, 93, 44, 1); rr('#8a8a80', 62, 96, 52, 1); rr('#4a4a44', 66, 95, 44, 1); rr('#4a4a44', 62, 98, 52, 1); rr('#4a4a44', 70, 92, 36, 1);
+  rr('#2a2a26', 86, 91, 1, 4); rr('#2a2a26', 80, 94, 1, 3); rr('#2a2a26', 92, 97, 1, 2);
+  for (let k = 0; k < 7; k++) { const h = hs(k, 8); rr(k % 2 ? '#3a6a34' : '#2c4a28', 64 + (h % 46), 96 - ((h >>> 4) % 3), 1, 4); }   // 계단 틈에서 자란 풀
+  // 오른쪽 끝: 왼쪽 탑과 균형을 맞추는 벽돌 굴뚝 기둥 (벽에서 지붕 위까지)
+  rr(BR, 152, 22, 20, 68); rr('#8a5444', 152, 22, 4, 68); rr(BRD, 166, 22, 6, 68); rr('rgba(0,0,0,0.25)', 152, 48, 20, 5);
+  for (let j = 0; j < 68; j += 3) { rr(MOR, 152, 22 + j, 20, 1); for (let i = ((j / 3) % 2) * 4; i < 20; i += 8) rr(MOR, 152 + i, 22 + j, 1, 3); }
+  rr('#6c665a', 149, 18, 26, 4); rr('#8a8478', 149, 18, 26, 1); rr('#4a4640', 149, 21, 26, 1);                  // 돌 뚜껑
+  rr('#3a3a40', 158, 8, 8, 10); rr('#5a5a60', 158, 8, 2, 10); rr('#2a2a30', 156, 6, 12, 3); rr('#16100c', 159, 6, 6, 1);   // 쇠 연통
+  rr('#7a4a2a', 147, 50, 2, 40); rr('#9a5a30', 147, 50, 1, 40); rr('#5a3418', 145, 66, 6, 2); rr('#7a4a2a', 145, 88, 6, 2);   // 녹슨 홈통
+  rr('#1a0a10', 160, 40, 4, 3); rr(MOSS, 153, 46, 5, 2); rr(MOSS, 155, 30, 6, 2);
+  // 덩굴 · 이끼: 건물 위에만 (벽·탑·지붕 범위 안)
+  const V1 = '#24401f', V2 = '#355c2e', V3 = '#4a8040', V4 = '#173018', V5 = '#6a9a4a';
+  const leaf = function (a, b, k) { rr(k % 3 === 0 ? V3 : (k % 3 === 1 ? V2 : V5), a, b, 2, 1); rr(V4, a + (k % 2 ? 0 : 1), b + 1, 1, 1); };
+  const vine = function (vx, vy, len, up, k) {
+    for (let j = 0; j < len; j++) { const yy = up ? vy - j : vy + j, sx = vx + (((j * 5 + k) % 4 === 0) ? 1 : (((j * 3 + k) % 5 === 0) ? -1 : 0)); rr(j % 7 < 3 ? V2 : V1, sx, yy, 1, 1); if (j % 3 === 1) leaf(sx + (((j + k) % 2) ? 1 : -2), yy, j + k); }
+  };
+  for (let k = 0; k < 74; k++) { const h = hs(k, 2), vx = 3 + (h % 168); if ((vx > 77 && vx < 99) || (vx > 126 && vx < 148)) continue; vine(vx, 91, 10 + ((h >>> 5) % 36), true, k); }              // 바닥에서 타고 올라간 덩굴
+  for (let k = 0; k < 46; k++) { const h = hs(k, 3), vx = 24 + (h % 148); if ((vx > 69 && vx < 107) || (vx > 126 && vx < 148)) continue; vine(vx, 57, 6 + ((h >>> 6) % 14), false, k); }               // 발코니 띠에서 늘어진 덩굴
+  for (let k = 0; k < 40; k++) { const h = hs(k, 4), vx = 24 + (h % 148); if ((vx > 69 && vx < 107) || (vx > 126 && vx < 148)) continue; vine(vx, 47, 4 + ((h >>> 6) % 12), false, k); }               // 처마에서 늘어진 덩굴
+  for (let k = 0; k < 10; k++) vine(70 + k * 4, 54, 8 + (k * 5) % 11, false, k + 7);                                                                                       // 차양에서 늘어진 덩굴
+  for (let k = 0; k < 7; k++) { vine(34 + k * 2, 62, 24, false, k); vine(114 + k * 2, 62, 26, false, k + 3); }                    // 양쪽 창을 가린 덩굴 커튼
+  for (let k = 0; k < 9; k++) vine(4 + k * 3, 90, 36 + (k * 7) % 22, true, k + 11);                                                                                         // 탑을 타고 오른 덩굴
+  for (let k = 0; k < 50; k++) { const h = hs(k, 6), cx = 4 + (h % 166), cy = 56 + ((h >>> 7) % 30); if ((cx > 72 && cx < 102 && cy > 56) || (cx > 122 && cx < 146 && cy > 58)) continue; rr(V2, cx, cy, 5, 3); rr(V3, cx + 1, cy, 2, 1); rr(V1, cx + 2, cy + 2, 3, 1); rr(V5, cx + 4, cy + 1, 1, 1); }   // 담쟁이 잎뭉치
+  for (let k = 0; k < 16; k++) { const h = hs(k, 7), cy = 8 + ((h >>> 7) % 34), ins = Math.round((40 - (cy - 4)) * 0.32), lo = 24 + ins, hi = 166 - ins, cx = lo + (h % Math.max(1, hi - lo)); rr(MOSS, cx, cy, 6, 2); rr(V4, cx + 1, cy + 2, 3, 1); }   // 지붕 위 이끼 (지붕 면 안에서만)
+  for (let i = 0; i < 130; i++) { const h = hs(i, 5), wx = 1 + (h % 174), wh = 3 + ((h >>> 9) % 6); rr(i % 5 === 0 ? '#8a8a46' : ((h % 2) ? '#355a30' : '#26421f'), wx, 92 - wh + ((h >>> 12) % 3), 1, wh); if (i % 4 === 0) rr('#4a8040', wx + 1, 92 - wh + 1, 1, 2); }   // 건물 밑동에 웃자란 잡초
+  rr(WALLD, 36, 50, 1, 6); rr('#74706a', 124, 52, 1, 5);
+}
+function drawWeed(g, x, y, t, seed) {                                           // 웃자란 잡초 한 무더기 (길이·기울기·색이 제각각, 가끔 말라 누런 줄기)
+  for (let k = 0; k < 8; k++) {
+    const h = hsh(seed * 5 + k, seed + 3 * k), bx = x + 1 + ((h % 7) * 2) % 15, ht = 4 + ((h >>> 5) % 9), lean = ((h >>> 9) % 3) - 1;
+    const c = (h % 7 === 0) ? '#8a8a46' : (h % 3 === 0 ? '#4a8040' : (h % 3 === 1 ? '#2f5a2e' : '#26421f'));
+    R(g, c, bx, y + 14 - ht, 1, ht); R(g, c, bx + lean, y + 14 - ht - 1, 1, 2);
+    if (ht > 7) R(g, '#6aa050', bx + lean, y + 14 - ht - 2, 1, 1);
+  }
+}
+function drawSapling(g, x, y, t, seed) {                                        // 제멋대로 자란 어린 나무 + 덤불
+  g.imageSmoothingEnabled = false;
+  const w = 10 + (seed % 4), hgt = 14 + (seed % 5);
+  R(g, '#17432a', x + 1, y + 13, 14, 3); R(g, '#1f5a38', x + 3, y + 11, 10, 3);
+  g.drawImage(IMG.tree, x + 8 - w / 2, y + 14 - hgt, w, hgt);
+  R(g, '#2f8a4f', x + 1, y + 12, 3, 2); R(g, '#4fae62', x + 12, y + 11, 2, 1);
+}
+function drawDeadTree(g, x, y, t) {                                             // 말라죽은 고목
+  const B = '#3a2e28', BL = '#5a4a40';
+  R(g, B, x + 6, y - 10, 4, 26); R(g, BL, x + 6, y - 10, 1, 26);
+  [[6, -2, -5, -8], [9, -6, 5, -9], [6, -8, -3, -12], [9, -10, 4, -14]].forEach(function (b) { for (let i = 0; i <= Math.abs(b[2]); i++) R(g, B, x + b[0] + Math.sign(b[2]) * i, y + b[1] + Math.round(i * (b[3] / Math.abs(b[2]))), 2, 1); });
+  R(g, '#1a1410', x + 7, y + 4, 2, 4); R(g, '#2a3a24', x + 4, y + 14, 8, 2);
+}
+function drawDiary(g, x, y, t) {                                              // 풀밭에 펼쳐져 떨어진 낡은 노트
+  R(g, 'rgba(0,0,0,.35)', x - 1, y + 7, 14, 2);
+  R(g, '#4a3a2a', x, y + 1, 12, 7); R(g, '#d8cfae', x + 1, y, 5, 6); R(g, '#e6dfc4', x + 6, y + 1, 5, 6);   // 표지 + 펼쳐진 쪽
+  R(g, '#a89c78', x + 6, y, 1, 7); R(g, '#9a8e6c', x + 2, y + 2, 3, 1); R(g, '#9a8e6c', x + 2, y + 4, 3, 1); R(g, '#9a8e6c', x + 7, y + 3, 3, 1);
+  R(g, '#2c5a2c', x - 1, y + 5, 2, 3); R(g, '#3a6a30', x + 11, y + 4, 2, 4);                                    // 풀잎이 가림
+}
+/* 일기장 내용 넣는 법: 아래 목록에 { date: '날짜 · 날씨', images: ['사진', …], text: '일기 내용' } 을 원하는 만큼 추가하면 쪽이 늘어납니다.
+   - images 에는 사진 경로 또는 'data:image/jpeg;base64,...' 를 넣으세요 (한 쪽에 여러 장도 가능, 눌러서 크게 보기 됨). 비워 두면 '사진을 넣어 주세요'가 나와요.
+   - text 안의 \n 은 줄(문단) 바꿈이에요. 글이 길어지면 창 안에서 스크롤돼요. */
+const DIARY = [
+  { date: '2025/11/15 · 서귀포', images: [], text: '오늘부터 이 집에서 지낸다.\n한라산 가는 길 초입이라 손님이 꽤 들 것 같다.\n간판은 내가 직접 칠했다. 글씨가 삐뚤빼뚤해도 이상하게 마음에 든다.' },
+  { date: '2025/11/15 · 서귀포', images: [], text: '밤마다 현관 쪽에서 누가 서성이는 소리가 난다.\n나가 보면 아무도 없다. 젖은 발자국만 문 안쪽으로 나 있다.\n방 열쇠도 하나씩 없어진다.' },
+  { date: '2025/11/15 · 서귀포', images: [], text: '까마귀가 간판 위에 앉아 하루 종일 이쪽을 본다.\n쫓아도 날아가지 않는다. 눈이 마주치면 꼭 내 쪽으로 고개를 돌린다.\n개는 그날부터 짖지 않는다.' },
+  { date: '2025/11/15 · 서귀포', images: [], text: '창문마다 누가 서 있다.\n나는 불을 켜지 않기로 했다. 켜면 보이니까.\n이 글을 읽는 사람이 있다면, 문은 열지 마라.' }
+];
+function tornPixel(seed) {                                                         // 쪽마다 다르게, 픽셀 계단처럼 찢긴 종이 가장자리
+  let r = seed * 9301 + 49297; const rnd = function () { r = (r * 9301 + 49297) % 233280; return r / 233280; };
+  const p = [], st = 4;
+  for (let x = 0; x < 100; x += st) { const y = (Math.floor(rnd() * 3) * 0.9).toFixed(1); p.push(x + '% ' + y + '%', (x + st) + '% ' + y + '%'); }      // 위
+  for (let y = 0; y < 86; y += 6) { const x = (100 - Math.floor(rnd() * 3) * 1.4).toFixed(1); p.push(x + '% ' + y + '%', x + '% ' + (y + 6) + '%'); }   // 오른쪽
+  const cx = 12 + Math.floor(rnd() * 8);                                                                                                             // 오른쪽 아래 뜯겨 나간 모서리 (계단)
+  for (let k = 0; k < 4; k++) { p.push((100 - cx * k / 4).toFixed(1) + '% ' + (86 + 14 * k / 4).toFixed(1) + '%', (100 - cx * k / 4).toFixed(1) + '% ' + (86 + 14 * (k + 1) / 4).toFixed(1) + '%'); }
+  for (let x = 100 - cx; x > 0; x -= st) { const y = (100 - Math.floor(rnd() * 3) * 0.9).toFixed(1); p.push(x + '% ' + y + '%', Math.max(0, x - st) + '% ' + y + '%'); }   // 아래
+  for (let y = 100; y > 0; y -= 7) { const x = (Math.floor(rnd() * 3) * 1.2).toFixed(1); p.push(x + '% ' + y + '%', x + '% ' + Math.max(0, y - 7) + '%'); }       // 왼쪽
+  return 'polygon(' + p.join(',') + ')';
+}
+function openDiary(n) {
+  const i = Math.max(0, Math.min(DIARY.length - 1, n || 0)), d = DIARY[i];
+  sheet.dataset.keep = '1';
+  openArchive(null, {
+    title: '김영수의 일기장', no: d.date, noInsta: true, tall: !!(d.images && d.images.length), images: d.images || [], desc: d.text, date: (i + 1) + ' / ' + DIARY.length + '쪽',
+    labelText: d.date, emptyText: '사진을 넣어 주세요',
+    extra: function (act) {
+      if (i > 0) act.appendChild(makeBtn('btn', '◀ 이전 장', function () { sfx('a'); openDiary(i - 1); }));
+      if (i < DIARY.length - 1) act.appendChild(makeBtn('btn primary', '다음 장 ▶', function () { sfx('a'); openDiary(i + 1); }));
+    }
+  });
+  const lab = sheet.querySelector('.no'), h2 = sheet.querySelector('h2');                                   // 제목은 작게 왼쪽, 날짜 · 장소는 오른쪽 끝에
+  if (lab) lab.remove();
+  if (h2) { const row = el('div', 'dhead'); h2.parentNode.insertBefore(row, h2); row.appendChild(h2); row.appendChild(el('span', 'dwhen', d.date)); }
+  sheet.classList.add('paper'); sheet.style.clipPath = tornPixel(i + 5);
+}
+function drawOldSign(g, x, y, t) {                                             // 비스듬히 기운(\ 모양) 낡은 나무 안내판
+  const W1 = '#8a7656', W2 = '#6a5640', W3 = '#c4b68e', DK = '#2c231a';
+  for (let i = 0; i < 26; i++) { const px = x + 13 - Math.round(i * 0.45), py = y + 17 - i; R(g, DK, px - 1, py, 4, 1); R(g, W2, px, py, 2, 1); R(g, W1, px, py, 1, 1); }       // 위쪽이 왼쪽으로 기운 기둥
+  const bx = x - 9, by = y - 5;
+  for (let r = 0; r < 13; r++) { const sh = Math.round(r * 0.55); R(g, DK, bx + sh, by + r, 24, 1); R(g, (r % 4 === 3) ? W2 : W1, bx + sh + 1, by + r, 22, 1); }   // 판자 (아래로 갈수록 오른쪽으로 흘러내린 평행사변형)
+  R(g, DK, bx, by - 1, 24, 1);
+  [[3, 3, 5], [10, 3, 3], [15, 3, 4], [4, 7, 4], [10, 7, 6]].forEach(function (c) { R(g, W3, bx + c[0] + Math.round(c[1] * 0.55), by + c[1], c[2], 1); R(g, W3, bx + c[0] + Math.round(c[1] * 0.55) + 1, by + c[1] + 1, Math.max(1, c[2] - 2), 1); });   // 바랜 글씨 자국
+  R(g, DK, bx + 13, by + 1, 1, 4); R(g, DK, bx + 5, by + 9, 5, 1); R(g, '#3a5a2a', bx + 17, by + 11, 5, 2); R(g, '#3a5a2a', bx + 2, by - 1, 4, 1); R(g, DK, bx + 18, by + 4, 2, 1);
+  R(g, '#2f5a2e', x + 6, y + 16, 1, 3); R(g, '#355a30', x + 12, y + 17, 1, 2); R(g, '#26421f', x + 14, y + 16, 1, 3); R(g, '#4a8040', x + 9, y + 17, 1, 2);
+}
+const CROW = { st: 'perch', t: 0, face: -1, preen: 0, next: 2.5, look: 0, idle: 0, ci: 0, obj: null };
+const CROW_X = 12 * 16 + 2 + 3, CROW_Y = 13 * 16 - 2 - 12, CROW_FLY = 3.4;     // 안내판 위쪽 모서리 · 날아가는 시간(초)
+function crowReset() { CROW.st = 'perch'; CROW.t = 0; CROW.face = -1; CROW.preen = 0; CROW.next = 2.2; CROW.look = 0; CROW.idle = 0; CROW.ci = 0; if (CROW.obj) CROW.obj.base = 13 * 16 + 17; }
+function crowTick(dt) {
+  const c = CROW;
+  if (c.st === 'gone') { if (c.t < CROW_FLY + 2.4) c.t += dt; if (c.obj) c.obj.base = c.t < CROW_FLY + 2.4 ? 99999 : 13 * 16 + 17; return; }
+  c.t += dt;
+  if (c.st === 'perch') {
+    if (Math.abs(P.x - 12) <= 1 && P.y >= 13 && P.y <= 14) { c.st = 'fly'; c.t = 0; c.face = -1; c.ci = 1; sfx('caw'); }          // 안내판 바로 앞(옆·아래)에 다가가면 놀라서 날아감
+    else {
+      if (P.moving || !P.idle) { c.idle = 0; c.preen = 0; }                                                                // 걸어 다니는 동안엔 고개를 들고 경계
+      else c.idle += dt;
+      if (c.idle > 1.2) {
+        if (c.preen > 0) c.preen -= dt;
+        else if (c.look > 0) c.look -= dt;
+        else { c.next -= dt; if (c.next <= 0) { const r = Math.random(); if (r < 0.55) c.preen = 1.2; else if (r < 0.8) c.face *= -1; else c.look = 0.7; c.next = 1.6 + Math.random() * 2.6; } }   // 가만히 있으면 부리로 몸을 다듬거나 두리번
+      }
+    }
+  } else if (c.st === 'fly') {
+    const CAWS = [0, 0.8, 2.0];                                                                                   // 까악 까악 … 까악 까악
+    if (c.ci < CAWS.length && c.t >= CAWS[c.ci]) { sfx(c.ci === 0 ? 'caw' : (c.ci === 1 ? 'caw2' : 'caw3')); c.ci++; }
+    if (c.t > CROW_FLY) c.st = 'gone';
+  }
+  if (c.obj) c.obj.base = c.st === 'fly' ? 99999 : 13 * 16 + 17;
+}
+function crowVec(g, cx, cy, S, ph, rot, sil) {                                          // 비행 중인 까마귀를 곡선으로 그림: 몸통·머리·부리·부채꼴 꼬리·깃털이 갈라진 날개 (크게 확대돼도 픽셀이 아니라 형체가 유지됨)
+  const fl = Math.sin(ph);
+  g.save(); g.translate(cx, cy); g.rotate(rot); g.scale(S, S);                                       // 부리가 왼쪽을 향함
+  const SIL = '#04040a', BODY = sil ? SIL : '#3a3c60', WING = sil ? SIL : '#2c2e4c', WINGF = sil ? SIL : '#22243c', EDGE = sil ? SIL : '#9aa2d8', SHEEN = sil ? SIL : '#5a609a';
+  const wing = function (dx, dy, k, col) {
+    const tx = 3 + dx - 1.5 * Math.abs(fl) * k, ty = dy - 2 - 14 * fl * k, sg = ty < dy - 2 ? 1 : -1;
+    g.beginPath(); g.moveTo(-2 + dx, dy - 2);
+    g.bezierCurveTo(-3 + dx, dy - 2 + (ty - dy + 2) * 0.35, dx - 1, dy - 2 + (ty - dy + 2) * 0.85, tx - 1, ty);                       // 앞날개 가장자리
+    for (let i = 0; i <= 5; i++) {                                                                                                    // 뒷가장자리: 깃털 끝이 톱니처럼 갈라짐
+      const f = i / 5, bx = tx + (9 + dx - tx) * f + 1.6 * (1 - f), by = ty + (dy - 1 - ty) * f;
+      g.lineTo(bx + 1.2, by + 0.9 * sg * (1 - f)); g.lineTo(bx - 0.6, by - 0.2 * sg + (f < 0.9 ? 0.9 * sg * (1 - f) : 0));
+    }
+    g.closePath(); g.fillStyle = col; g.fill();
+    g.strokeStyle = EDGE; g.lineWidth = 0.35; g.beginPath(); g.moveTo(-2 + dx, dy - 2); g.bezierCurveTo(-3 + dx, dy - 2 + (ty - dy + 2) * 0.35, dx - 1, dy - 2 + (ty - dy + 2) * 0.85, tx - 1, ty); g.stroke();   // 윗선 빛
+    g.strokeStyle = SHEEN; g.lineWidth = 0.3;
+    for (let i = 1; i < 5; i++) { const f = i / 5; g.beginPath(); g.moveTo(1 + dx, dy - 1.5); g.lineTo(tx + (9 + dx - tx) * f, ty + (dy - 1 - ty) * f); g.stroke(); }   // 깃대 선
+  };
+  wing(2.2, -0.6, 0.85, WINGF);                                                                                                       // 먼 쪽 날개 (어둡게, 살짝 위상 차이)
+  g.fillStyle = BODY;
+  g.beginPath(); g.moveTo(6, -1.2); g.lineTo(12.5, -3.2); g.lineTo(15, -1.2); g.lineTo(14.6, 0.6); g.lineTo(15, 2.6); g.lineTo(12.5, 3); g.lineTo(6, 1.8); g.closePath(); g.fill();   // 꼬리 (부채꼴)
+  g.strokeStyle = SHEEN; g.lineWidth = 0.3; for (let i = -1; i <= 1; i++) { g.beginPath(); g.moveTo(6, 0.2); g.lineTo(14.6, 0.4 + i * 1.7); g.stroke(); }
+  g.beginPath(); g.ellipse(0, 0, 8.2, 3.7, 0, 0, Math.PI * 2); g.fill();                                                                // 몸통
+  g.fillStyle = sil ? SIL : '#34385c'; g.beginPath(); g.ellipse(-0.5, -1.6, 6.4, 1.2, 0, 0, Math.PI * 2); g.fill();                                  // 등 쪽 윤기
+  g.fillStyle = BODY; g.beginPath(); g.ellipse(-8.2, -1.2, 3.4, 2.9, 0, 0, Math.PI * 2); g.fill();                                      // 머리
+  g.fillStyle = sil ? SIL : '#34385c'; g.beginPath(); g.ellipse(-8, -2.4, 2.3, 0.8, 0, 0, Math.PI * 2); g.fill();
+  g.fillStyle = sil ? SIL : '#b8b4c8'; g.beginPath(); g.moveTo(-10.6, -2.2); g.lineTo(-16.2, -0.3); g.lineTo(-10.6, 0.7); g.closePath(); g.fill();   // 굵고 뾰족한 부리
+  g.fillStyle = sil ? SIL : '#7a768a'; g.beginPath(); g.moveTo(-10.6, -0.4); g.lineTo(-16, -0.1); g.lineTo(-10.6, 0.7); g.closePath(); g.fill();
+  g.fillStyle = sil ? SIL : '#b8bcd8'; g.beginPath(); g.moveTo(-10.6, -2.6); g.lineTo(-8.2, -1.9); g.lineTo(-10.4, -1.7); g.closePath(); g.fill();   // 눈
+  g.strokeStyle = sil ? SIL : '#4a3a30'; g.lineWidth = 0.5; g.beginPath(); g.moveTo(-1, 3.2); g.lineTo(-2.4, 5.4); g.moveTo(2, 3.3); g.lineTo(0.8, 5.6); g.stroke();       // 다리
+  wing(0, 0, 1, WING);                                                                                                                // 가까운 쪽 날개
+  g.restore();
+}
+function drawCrow(g, ox, oy, t) {
+  const c = CROW;
+  const K = '#2c2c42', KS = '#6c6c98', BK = '#d8c070', EY = '#ffffff', LG = '#4a3a30', W = 16, RIM = '#8a90b8';
+  if (c.st === 'gone' && c.t > CROW_FLY + 2.4) return;
+  if (c.st === 'fly' || c.st === 'gone') {                                          // 공중날기: 날아오르다 화면 앞으로 스치며 그림자처럼 윤곽만 남고, 하얀 깃털이 떨어짐
+    if (c.st === 'fly') {                                                            // 왼쪽 위 대각선으로 날개를 파닥이며 날아가고, 멀리 갈수록 살짝 커짐
+      const u = Math.min(1, c.t / CROW_FLY), sc = 0.9 + 3.2 * u;
+      const cx = ox + CROW_X + 8 - 260 * u, cy = oy + CROW_Y + 6 - 150 * u;                                  // 흔들림 없이 매끈한 대각선
+      crowVec(g, cx, cy, sc, c.t * 17, 0.42, false);
+    }
+    for (let k = 0; k < 7; k++) {                                                      // 날아오를 때 떨어지는 어두운 깃털
+      const tt = c.t - (0.05 + k * 0.13);
+      if (tt < 0 || tt > 2.2) continue;
+      const fx = ox + CROW_X + 6 + (k - 3) * 5 - 14 * tt + 9 * Math.sin(tt * 3 + k), fy = oy + CROW_Y + 4 + (k % 3) * 4 + tt * 30, ang = 0.9 * Math.sin(tt * 3.2 + k) + 0.6;
+      g.save(); g.globalAlpha = Math.min(1, tt * 4) * Math.min(1, (2.2 - tt) * 1.2); g.translate(fx, fy); g.rotate(ang);
+      g.fillStyle = '#6a70a8'; g.beginPath(); g.ellipse(0, 0, 6, 2.3, 0, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = '#d0d6ff'; g.lineWidth = 0.6; g.beginPath(); g.moveTo(-6.4, 0); g.lineTo(6.4, 0); g.stroke(); g.restore();
+    }
+    return;
+  }
+  const X0 = CROW_X, Y0 = CROW_Y, flip = c.face > 0;
+  const q = function (dx, dy, w, h, col) { R(g, col, ox + X0 + (flip ? W - dx - w : dx), oy + Y0 + dy, w, h); };
+  let hx = 2, hy = 0, beak = 0;
+  if (c.preen > 0) { hx = 4; hy = 4 + (Math.sin(c.t * 16) > 0 ? 1 : 0); beak = 1; }
+  else if (c.look > 0) { hy = (Math.floor(c.t * 4) % 2) ? -1 : 0; }
+  q(10, 5, 4, 2, K); q(12, 6, 3, 2, K);                                              // 꼬리
+  q(3, 3, 8, 5, K); q(4, 2, 6, 1, K); q(4, 8, 6, 1, K); q(5, 4, 5, 1, KS); q(6, 6, 4, 1, KS); q(4, 2, 6, 1, RIM);   // 몸통 · 날개 윤기 · 윤곽빛
+  q(hx, hy, 4, 4, K); q(hx + 1, hy - 1, 2, 1, K); q(hx + 1, hy, 2, 1, RIM);       // 머리
+  if (beak) { q(hx + 1, hy + 4, 1, 2, BK); } else { q(hx - 2, hy + 2, 2, 1, BK); q(hx - 2, hy + 3, 1, 1, '#a89850'); }   // 부리
+  q(hx + 1, hy + 1, 1, 1, EY);                                                       // 눈
+  q(6, 9, 1, 2, LG); q(9, 9, 1, 2, LG);                                              // 다리
+}
+function buildMansion() {
+  const W = 20, H = 20, m = mkGrid(W, H, 'l');                                // 숲이 사방을 두껍게 둘러싼 공터 (공터: 가로 10칸 × 세로 14칸)
+  fill(m, 0, 0, W, 4, 'B'); fill(m, 0, 4, 4, H - 4, 'B'); fill(m, 16, 4, 4, H - 4, 'B'); fill(m, 4, 18, 12, 2, 'B');
+  fill(m, 4, 4, 12, 6, 'X');                                                  // 저택 몸체 (양옆이 숲에 닿아 뒤로는 돌아갈 수 없음)
+  fill(m, 9, 10, 2, 8, 'p'); fill(m, 9, 18, 2, 2, 'Q');                      // 두 칸 폭 길: 공터 한가운데 (좌우 5칸씩)                      // 현관에서 입구까지 이어진 길
+  setList(m, '4,12 15,13 4,16 15,10 12,13 6,14', 'X');                                   // 잔디밭 가장자리에 자란 묘목·고목 (길목은 막지 않음)
+  const map = { id: 'mansion', w: W, h: H, grid: m, bg: '#06080a' };
+  map.ground = buildGround(map);
+  const o = [];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (gget(m, x, y) === 'B') o.push({ img: IMG.tree, x: x * 16, y: y * 16 - 8, base: y * 16 + 16 });
+  const over = { '4,12': 's', '15,13': 's', '4,16': 's', '15,10': 'd' };
+  Object.keys(over).forEach(function (k, i) {
+    const p = k.split(','), tx = +p[0], ty = +p[1];
+    if (over[k] === 'd') o.push({ draw: drawDeadTree, x: tx * 16, y: ty * 16, base: ty * 16 + 16 });
+    else o.push({ draw: function (g, x, y, t) { drawSapling(g, x, y, t, i + 2); }, x: tx * 16, y: ty * 16, base: ty * 16 + 16 });
+  });
+  for (let ty = 10; ty < 18; ty++) for (let tx = 4; tx < 16; tx++) {            // 웃자란 잡초 (지나다니는 데는 방해하지 않음)
+    const c = gget(m, tx, ty), h = hsh(tx * 3 + 1, ty * 5 + 2);
+    if (c === 'X' || c === 'Q') continue;
+    const edge = (tx === 4 || tx === 15 || ty === 17);
+    if (c === 'p' ? (h % 3 === 0) : (h % 100 < (edge ? 85 : (ty < 12 ? 72 : 50)))) { const sd = h % 997; o.push({ draw: function (g, x, y, t) { drawWeed(g, x, y, t, sd); }, x: tx * 16 + ((h >>> 3) % 5) - 2, y: ty * 16 + ((h >>> 7) % 5) - 2, base: ty * 16 + 15 + ((h >>> 11) % 3) }); }
+    if (c === 'l' && h % 100 < (edge ? 60 : (ty < 12 ? 42 : 22))) { const sd = (h >>> 4) % 997; o.push({ draw: function (g, x, y, t) { drawWeed(g, x, y, t, sd); }, x: tx * 16 + 7, y: ty * 16 + 3, base: ty * 16 + 17 }); }
+  }
+  o.push({ draw: drawOldSign, x: 12 * 16 + 2, y: 13 * 16 - 2, base: 13 * 16 + 16 });
+  o.push({ draw: drawDiary, x: 6 * 16 + 2, y: 14 * 16 + 5, base: 14 * 16 + 15 });                                  // 왼쪽 잔디밭에 떨어진 낡은 일기장
+  CROW.obj = { draw: drawCrow, x: 0, y: 0, base: 13 * 16 + 17 }; o.push(CROW.obj);                          // 안내판 위에 앉은 까마귀
+  o.push({ draw: drawMansion, x: 72, y: 61, base: 161 });
+  map.objects = o;
+  map.acts = [
+    { x: 6, y: 14, w: 1, h: 1, kind: 'diary', label: '낡은 일기장' },
+    { x: 12, y: 13, w: 1, h: 1, kind: 'dialog', label: '낡은 안내판', lines: ['「한라산 가는 길」', '(비바람에 낡아 글씨가 거의 지워졌다.)', '(빛바랜 사진을 보니 펜션이었던 모양이다)'] },
+    { x: 8, y: 9, w: 4, h: 1, kind: 'dialog', label: '현관문', lines: ['(문이 반쯤 열려 있다. 안쪽은 새까맣다…)', '(…지금은 들어가고 싶지 않다.)'] },
+    { x: 4, y: 4, w: 4, h: 6, kind: 'dialog', label: '저택', lines: ['(오랫동안 아무도 살지 않은 것 같다.)', '(깨진 창문 너머로 뭔가 움직인 것 같은데…)'] },
+    { x: 12, y: 4, w: 4, h: 6, kind: 'dialog', label: '저택', lines: ['(벽을 뒤덮은 덩굴이 바람도 없는데 살랑거린다.)'] }
+  ];
+  map.npcs = [];
+  map.lights = [{ x: 160, y: 118, r: 130, a: 0.38, color: '150,166,205' }];   // 달빛처럼 저택을 희미하게 비추는 빛
+  map.always = true;                                                       // 들어올 때마다 안내 문구
+  map.welcome = ['덤불 사이의 틈으로 들어왔다.', '숲 한가운데, 낡은 저택이 덩그러니 서 있다…'];
   return map;
 }
 // 마을: 왼쪽으로 넓힌 지도 (왼쪽 숲은 치우고 들판으로 이어짐, 말 울타리는 입구 길 왼쪽)
@@ -1870,12 +2270,14 @@ function buildTown() {
   const buck = npc(9, 19, DEER.buck, function () { return phase() === 'night' ? [deerSleep, '(zzz,,,)'] : ['(뿔 달린 아빠 노루가 풀을 우물거리며 가만히 쳐다본다.)', '(제주 한라산 자락에서 내려온 노루 가족이다.)']; }, { dir: 'left' });
   const fawn = npc(6, 21, DEER.fawn, function () { return phase() === 'night' ? [deerSleep, '(zzz,,,)'] : ['(점박이 아기 노루가 엄마 뒤에 숨어 빼꼼 쳐다본다.)']; }, { dir: 'right' });
   [doe, buck, fawn].forEach(function (d) { d.deer = true; d.label = '노루'; d.graze = 0; d.face = d.dir; });
-  buck.leader = doe; fawn.leader = doe; fawn.fawn = true;
+  buck.leader = doe; fawn.leader = doe; fawn.fawn = true; buck.buck = true;
   [[doe, 20], [buck, 19], [fawn, 21]].forEach(function (q) { const d = q[0]; d.hx = d.x; d.hy = d.y; d.spot = { x: 2, y: q[1] }; d.exit = { x: -4, y: q[1] }; d.goneT = 0; d.st = 'calm'; d.fx = d.x; d.fy = d.y; });
   map.deerAll = [doe, buck, fawn];
   map.npcs.push(doe, buck, fawn);
   map.lights = c.lights.map(function (L) { L.x += DX * 16; if (L.flicker) L.x = 11 * 16 + 8; return L; });   // 대나무숲 입구(왼쪽) 불빛: 입구 가운데 길 위로
   map.lights.push({ x: 16 * 16 + 64, y: 8 * 16 - 84 + 29, r: 26, a: 0.42, color: '255,222,150' });
+  o.push({ draw: drawGrottoBush, x: 30 * 16, y: 5 * 16 - 8, base: 5 * 16 + 17 });                    // 은혈: 나무 두 그루 사이에 자란 덤불 (나무에서 자란 어린 가지들이 엉킴)
+  map.acts.unshift({ x: 30, y: 5, w: 2, h: 1, kind: 'grotto', label: '???' });
   map.acts.push({ x: 16, y: 4, w: 8, h: 4, kind: 'archive', key: 'holy', noclick: true });   // 가까이 가면 이름표만
   const X0 = DX * 16;                                      // 바다 왼쪽 끝을 가리는 큰 바위들 + 보트 옆 암초
   map.rocks = [
@@ -1889,7 +2291,7 @@ function buildTown() {
   map.ground = buildGround(map);
   return map;
 }
-const MAPS = { town: buildTown(), house: buildHouse(), bamboo: buildBamboo() };
+const MAPS = { town: buildTown(), house: buildHouse(), bamboo: buildBamboo(), mansion: buildMansion() };
 let cur = MAPS.town;
 
 /* =========================================================
@@ -1958,18 +2360,20 @@ function checkTrigger() {
   if (cur.id === 'town' && c === 'G') { goMap('bamboo', 9, 15, 'up'); return true; }
   if (cur.id === 'house' && c === 'E') { goMap('town', P.x + 10 + TOWN_DX, 13, 'down'); return true; }
   if (cur.id === 'bamboo' && c === 'Q') { goMap('town', 11, 9, 'down'); return true; }
+  if (cur.id === 'mansion' && c === 'Q') { goMap('town', 30, 6, 'down', 'bush'); return true; }
   return false;
 }
-function goMap(id, x, y, dir) {
-  fading = true; sfx('door'); $('fade').style.opacity = 1;
+function goMap(id, x, y, dir, snd) {
+  fading = true; sfx(snd || 'door'); $('fade').style.opacity = 1;
   setTimeout(function () {
     cur = MAPS[id];
+    if (id === 'mansion') crowReset();
     P.x = x; P.y = y; P.nx = x; P.ny = y; P.px = x * 16; P.py = y * 16; P.dir = dir; P.moving = false; P.idle = true;
     updateMusic();
     $('fade').style.opacity = 0;
     setTimeout(function () {
       fading = false;
-      if (cur.welcome && !cur.visited) { cur.visited = true; say(cur.welcome); }
+      if (cur.welcome && (!cur.visited || cur.always)) { cur.visited = true; say(cur.welcome); }
     }, 260);
   }, 260);
 }
@@ -2015,11 +2419,13 @@ function deerGroup(dt) {
     if (n.hidden || n.st === 'night' || n.talking) return;
     if (Math.hypot(P.px / 16 - n.px / 16, P.py / 16 - n.py / 16) < DEER_SCARE) near = true;
   });
+  let sounded = false;
   L.forEach(function (n, i) {
     const st = n.st;
     if (st === 'calm' || st === 'back' || st === 'toNight') {
       if (!night && near && !L.some(function (m) { return m.talking; })) {                         // 놀람: 하던 걸음을 멈추고 플레이어를 쳐다봄
         if (st === 'calm') { if (n.moving) { n.x = n.nx; n.y = n.ny; n.px = n.x * 16; n.py = n.y * 16; } n.fx = n.x; n.fy = n.y; } n.moving = false;
+        if (!sounded) { sounded = true; sfx('dAlert'); }                                  // 세 마리가 함께 놀라도 소리는 한 번
         n.st = 'alert'; n.stT = 0.8 + i * 0.1; n.graze = 0; n.glide = null; n.hop = 0; n.behind = false;
         n.dir = n.face = (P.px < n.px) ? 'left' : 'right'; n.alertT = 0;
         return;
@@ -2136,6 +2542,8 @@ function interact(a) {
   else if (a.kind === 'contact') openContact();
   else if (a.kind === 'insta') openInsta();
   else if (a.kind === 'board') openBoard();
+  else if (a.kind === 'grotto') goMap('mansion', 9, 16, 'up', 'bush');
+  else if (a.kind === 'diary') openDiary();
 }
 function pressA() {
   if (state === 'title') { start(); return; }
@@ -2152,7 +2560,7 @@ function pressB() { if (modalOpen) closeModal(); else if (dlg.active) advance();
    ========================================================= */
 let modalNav = null;
 const sheet = $('sheet');
-function showModal() { modalOpen = true; $('modal').classList.add('show'); sheet.scrollTop = 0; }
+function showModal() { if (!sheet.dataset.keep) { sheet.classList.remove('paper'); sheet.style.clipPath = ''; } delete sheet.dataset.keep; modalOpen = true; $('modal').classList.add('show'); sheet.scrollTop = 0; }
 function closeModal() { modalOpen = false; modalNav = null; $('modal').classList.remove('show'); sfx('close'); }
 $('modal').addEventListener('click', function (e) { if (e.target.id === 'modal') closeModal(); });
 
@@ -2266,8 +2674,8 @@ addEventListener('keydown', function (e) {                                  // �
   else if (e.key === 'ArrowRight') lbShow(LB.i + 1);
 }, true);
 
-function openArchive(key) {
-  const a = ARCHIVE[key];
+function openArchive(key, custom) {
+  const a = custom || ARCHIVE[key];
   if (!a) return;
   let i = 0, track = null, cnt = null, wasDrag = false;
   function width() { return track ? track.clientWidth : 0; }
@@ -2280,7 +2688,7 @@ function openArchive(key) {
   function draw() {
     const imgs = a.images;
     sheet.textContent = '';
-    if (!a.noLabel) sheet.appendChild(el('div', 'no', 'PROJECT ' + a.no + (a.type ? ' · ' + a.type : '')));
+    if (!a.noLabel) sheet.appendChild(el('div', 'no', a.labelText || ('PROJECT ' + a.no + (a.type ? ' · ' + a.type : ''))));
     sheet.appendChild(el('h2', '', a.title));
     const v = el('div', a.tall ? 'viewer tall' : 'viewer');
     track = null; cnt = null;
@@ -2309,7 +2717,7 @@ function openArchive(key) {
       });
       v.appendChild(track);
     } else {
-      v.appendChild(el('div', 'empty', '아직 등록된 이미지가 없어요\nARCHIVE의 images에 사진 경로를 넣어 주세요'));
+      v.appendChild(el('div', 'empty', a.emptyText || '아직 등록된 이미지가 없어요\nARCHIVE의 images에 사진 경로를 넣어 주세요'));
     }
     if (imgs.length > 1) {
       v.appendChild(makeBtn('nav prev', '◀', function () { go(-1); }));
@@ -2360,6 +2768,7 @@ function openArchive(key) {
     const act = el('div', 'actions');
     if (a.post) act.appendChild(makeLink('btn primary', a.post, a.postLabel || '인스타 게시물 보기 ▶'));
     if (!a.noInsta) act.appendChild(makeLink(a.post ? 'btn' : 'btn primary', SITE.insta, '인스타그램'));
+    if (a.extra) a.extra(act);
     act.appendChild(makeBtn('btn', '닫기', closeModal));
     sheet.appendChild(act);
   }
@@ -2553,10 +2962,14 @@ const HOUSE_LEAD = 'G4.3 A4.1 B4.2 D5.2 C5.4 B4.2 A4.2 G4.2 E4.2 F4.2 A4.2 G4.8 
 const HOUSE_BASS = 'G2.4 D3.4 A2.4 E3.4 C3.4 F2.4 G2.4 D3.4 F2.4 C3.4 G2.4 B2.4 F2.4 G2.4 C3.8';
 const CAMP_LEAD = 'D5.2 B4.2 G4.2 B4.2 C5.4 A4.4 B4.2 G4.2 E4.2 G4.2 D4.8 E4.2 G4.2 A4.2 B4.2 C5.4 E5.4 D5.3 C5.1 B4.2 A4.2 G4.8';
 const CAMP_ARP = 'G2.2 D3.2 G3.2 D3.2 A2.2 E3.2 C3.2 E3.2 G2.2 D3.2 G3.2 D3.2 G2.2 D3.2 B2.2 D3.2 C3.2 G3.2 C4.2 G3.2 A2.2 E3.2 A3.2 E3.2 D3.2 A3.2 F#3.2 A3.2 G2.2 D3.2 G3.4';
+const HAUNT_LEAD = 'E5.6 r.2 D#5.4 r.4 B4.8 r.4 C5.2 B4.2 A#4.8 r.8 F5.6 r.2 E5.4 r.2 A4.8 r.8';        // 으스스한 저택: 반음·트라이톤 위주의 느린 선율
+const HAUNT_BASS = 'E2.24 F2.16 E2.24 D#2.14';
+const HAUNT_BELL = 'r.10 B5.1 r.9 F6.1 r.14 A#5.1 r.12 E6.1 r.29';
 const TRACKS = {
   town:  { bpm: 124, parts: [{ wave: 'square', vol: 0.05, ev: parse(TOWN_LEAD) }, { wave: 'triangle', vol: 0.14, ev: parse(TOWN_BASS) }] },
   night: { bpm: 92,  parts: [{ wave: 'square', vol: 0.035, ev: parse(TOWN_LEAD) }, { wave: 'triangle', vol: 0.12, ev: parse(TOWN_BASS) }] },
   house: { bpm: 100, parts: [{ wave: 'square', vol: 0.045, ev: parse(HOUSE_LEAD) }, { wave: 'triangle', vol: 0.13, ev: parse(HOUSE_BASS) }] },
+  haunt: { bpm: 56,  parts: [{ wave: 'sine', vol: 0.07, ev: parse(HAUNT_LEAD) }, { wave: 'triangle', vol: 0.12, ev: parse(HAUNT_BASS) }, { wave: 'square', vol: 0.014, ev: parse(HAUNT_BELL) }] },
   camp:  { bpm: 84,  parts: [{ wave: 'triangle', vol: 0.14, ev: parse(CAMP_LEAD) }, { wave: 'square', vol: 0.025, ev: parse(CAMP_ARP) }] }
 };
 function tone(dest, type, f, t, d, v) {
@@ -2566,10 +2979,17 @@ function tone(dest, type, f, t, d, v) {
   g.gain.setValueAtTime(v, t + d * 0.7); g.gain.linearRampToValueAtTime(0, t + d);
   o.connect(g); g.connect(dest); o.start(t); o.stop(t + d + 0.02);
 }
+let musicBus = null;
+function getMusicBus() { if (!musicBus) { musicBus = actx.createGain(); musicBus.connect(master); } return musicBus; }
+function duckMusic(v) {                                                    // 아저씨가 말하는 동안 배경음을 작게
+  if (!actx || !musicBus) return;
+  const t = actx.currentTime;
+  musicBus.gain.cancelScheduledValues(t); musicBus.gain.setValueAtTime(musicBus.gain.value, t); musicBus.gain.linearRampToValueAtTime(v, t + 0.35);
+}
 function scheduleLoop(t0) {
   const tr = TRACKS[curTrack], step = 60 / tr.bpm / 2;
   const g = actx.createGain();
-  g.connect(master); gains.push(g);
+  g.connect(getMusicBus()); gains.push(g);
   if (gains.length > 3) gains.shift();
   let len = 0;
   tr.parts.forEach(function (p) {                                         // 파트마다 오실레이터 하나로 모든 음을 예약
@@ -2609,6 +3029,7 @@ function updateMusic() {
   let name = 'town';
   if (cur.id === 'house') name = 'house';
   else if (cur.id === 'bamboo') name = 'camp';
+  else if (cur.id === 'mansion') name = 'haunt';
   else if (phase() === 'night') name = 'night';
   playTrack(name);
 }
@@ -2618,6 +3039,84 @@ function sfx(type) {
   if (type === 'a') { tone(master, 'square', freq('A5'), t, 0.05, 0.05); tone(master, 'square', freq('E6'), t + 0.05, 0.06, 0.05); }
   if (type === 'door') { tone(master, 'square', freq('C5'), t, 0.08, 0.05); tone(master, 'square', freq('G4'), t + 0.08, 0.12, 0.05); }
   if (type === 'close') tone(master, 'square', freq('E5'), t, 0.05, 0.04);
+  if (type === 'gClick') {                                                    // 유령 말을 눌렀을 때: 서늘하게 떨어지는 소리
+    const o = actx.createOscillator(), g = actx.createGain(), lf = actx.createOscillator(), lg = actx.createGain();
+    o.type = 'sine'; o.frequency.setValueAtTime(1250, t); o.frequency.exponentialRampToValueAtTime(260, t + 0.55);
+    lf.frequency.value = 30; lg.gain.value = 40; lf.connect(lg); lg.connect(o.frequency);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.2, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+    o.connect(g); g.connect(master); o.start(t); lf.start(t); o.stop(t + 0.65); lf.stop(t + 0.65);
+    tone(master, 'triangle', freq('E3'), t, 0.5, 0.12);
+  }
+  if (type === 'gDoorOpen') {                                                 // 삐걱 문 여는 소리
+    const o = actx.createOscillator(), g = actx.createGain(), f = actx.createBiquadFilter(), lf = actx.createOscillator(), lg = actx.createGain();
+    o.type = 'sawtooth'; o.frequency.setValueAtTime(80, t + 0.05); o.frequency.linearRampToValueAtTime(190, t + 0.5);
+    lf.frequency.value = 17; lg.gain.value = 18; lf.connect(lg); lg.connect(o.frequency);
+    f.type = 'lowpass'; f.frequency.value = 700;
+    g.gain.setValueAtTime(0.0001, t + 0.05); g.gain.exponentialRampToValueAtTime(0.14, t + 0.12); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
+    o.connect(f); f.connect(g); g.connect(master); o.start(t + 0.05); lf.start(t + 0.05); o.stop(t + 0.6); lf.stop(t + 0.6);
+  }
+  if (type === 'gDoorClose') {                                                // 덜컥: 낮은 '덜' + 걸쇠가 걸리는 짧은 '컥'
+    const nb = actx.createBuffer(1, Math.floor(actx.sampleRate * 0.25), actx.sampleRate), nd = nb.getChannelData(0);
+    for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+    const knock = function (t0, f0, f1, vol, dur) {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(f0, t0); o.frequency.exponentialRampToValueAtTime(f1, t0 + dur);
+      g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur + 0.03);
+      o.connect(g); g.connect(master); o.start(t0); o.stop(t0 + dur + 0.06);
+    };
+    const click = function (t0, fc, vol, dur) {
+      const ns = actx.createBufferSource(), bp = actx.createBiquadFilter(), g = actx.createGain();
+      ns.buffer = nb; bp.type = 'bandpass'; bp.frequency.value = fc; bp.Q.value = 1.4;
+      g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      ns.connect(bp); bp.connect(g); g.connect(master); ns.start(t0); ns.stop(t0 + dur + 0.02);
+    };
+    knock(t, 135, 55, 0.5, 0.11); click(t, 700, 0.35, 0.09);                    // 덜
+    knock(t + 0.085, 230, 120, 0.26, 0.05); click(t + 0.085, 2400, 0.4, 0.045); // 컥
+  }
+  if (type === 'dAlert') {                                                    // 노루가 놀랄 때: 삑! 하는 놀람음 + 짧은 콧김
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = 'square'; o.frequency.setValueAtTime(880, t); o.frequency.setValueAtTime(1320, t + 0.07);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.09, t + 0.01); g.gain.setValueAtTime(0.09, t + 0.12); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
+    o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.22);
+    const nb = actx.createBuffer(1, Math.floor(actx.sampleRate * 0.25), actx.sampleRate), nd = nb.getChannelData(0);
+    for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+    const ns = actx.createBufferSource(), bp = actx.createBiquadFilter(), ng = actx.createGain();
+    ns.buffer = nb; bp.type = 'bandpass'; bp.frequency.value = 2200; bp.Q.value = 0.9;
+    ng.gain.setValueAtTime(0.0001, t + 0.08); ng.gain.exponentialRampToValueAtTime(0.12, t + 0.1); ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.24);
+    ns.connect(bp); bp.connect(ng); ng.connect(master); ns.start(t + 0.08); ns.stop(t + 0.26);
+  }
+  if (type === 'caw' || type === 'caw2' || type === 'caw3') {                // 까아악! — 거친 톱니파 + 두 개의 공명대 + 떨림, 뒤로 갈수록 더 크고 길게
+    const vol = type === 'caw' ? 0.42 : (type === 'caw2' ? 0.55 : 0.7), len = type === 'caw' ? 0.38 : (type === 'caw2' ? 0.46 : 0.58), f0 = type === 'caw3' ? 330 : 380;
+    const o = actx.createOscillator(), o2 = actx.createOscillator(), env = actx.createGain(), rasp = actx.createGain(), lfo = actx.createOscillator(), lg = actx.createGain();
+    const b1 = actx.createBiquadFilter(), b2 = actx.createBiquadFilter(), m1 = actx.createGain(), m2 = actx.createGain();
+    o.type = 'sawtooth'; o2.type = 'square';
+    o.frequency.setValueAtTime(f0, t); o.frequency.linearRampToValueAtTime(f0 * 1.5, t + 0.07); o.frequency.exponentialRampToValueAtTime(f0 * 0.72, t + len);
+    o2.frequency.setValueAtTime(f0 * 2, t); o2.frequency.linearRampToValueAtTime(f0 * 3, t + 0.07); o2.frequency.exponentialRampToValueAtTime(f0 * 1.44, t + len);
+    b1.type = 'bandpass'; b1.frequency.value = 900; b1.Q.value = 2.2; b2.type = 'bandpass'; b2.frequency.value = 2100; b2.Q.value = 3;
+    m1.gain.value = 1; m2.gain.value = 0.35;
+    lfo.frequency.value = 68; lg.gain.value = 0.35; rasp.gain.value = 0.7; lfo.connect(lg); lg.connect(rasp.gain);        // 목이 갈라지는 거친 떨림
+    env.gain.setValueAtTime(0.0001, t); env.gain.exponentialRampToValueAtTime(vol, t + 0.03); env.gain.setValueAtTime(vol, t + len * 0.55); env.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    o.connect(b1); b1.connect(m1); m1.connect(rasp); o2.connect(b2); b2.connect(m2); m2.connect(rasp); rasp.connect(env); env.connect(master);
+    o.start(t); o2.start(t); lfo.start(t); o.stop(t + len + 0.05); o2.stop(t + len + 0.05); lfo.stop(t + len + 0.05);
+  }
+  if (type === 'bush') {                                                      // 덤불을 헤치는 바스락 소리
+    const nb = actx.createBuffer(1, Math.floor(actx.sampleRate * 0.5), actx.sampleRate), nd = nb.getChannelData(0);
+    for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+    const ns = actx.createBufferSource(), bp = actx.createBiquadFilter(), ng = actx.createGain();
+    ns.buffer = nb; bp.type = 'bandpass'; bp.Q.value = 0.8; bp.frequency.setValueAtTime(1800, t); bp.frequency.exponentialRampToValueAtTime(5200, t + 0.4);
+    ng.gain.setValueAtTime(0.0001, t); ng.gain.exponentialRampToValueAtTime(0.16, t + 0.05); ng.gain.setValueAtTime(0.16, t + 0.12); ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
+    ns.connect(bp); bp.connect(ng); ng.connect(master); ns.start(t); ns.stop(t + 0.5);
+  }
+  if (type === 'gQ') {                                                        // 물음표: 올라가는 "응?"
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = 'square'; o.frequency.setValueAtTime(420, t); o.frequency.exponentialRampToValueAtTime(880, t + 0.22);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.07, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.26);
+    o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.3);
+  }
+  if (type === 'gTalk') {                                                     // 나에게 말을 걸 때: 따다단! 하고 주의를 끄는 소리
+    tone(master, 'triangle', freq('C5'), t, 0.07, 0.1); tone(master, 'triangle', freq('E5'), t + 0.07, 0.07, 0.1);
+    tone(master, 'triangle', freq('G5'), t + 0.14, 0.07, 0.1); tone(master, 'square', freq('C6'), t + 0.21, 0.18, 0.07);
+  }
 }
 function initAudio() {
   if (actx) return;
@@ -2694,6 +3193,10 @@ $('listBtn').onclick = function () { sfx('a'); openList(); };
 // 화면의 오브젝트·NPC를 직접 눌러도 열림
 cv.addEventListener('pointerdown', function (e) {
   if (locked()) return;
+  if (cur && cur.id === 'town' && !GM && ghostRoadOk() && GH.a * GH.v * GH.z > 0.3 && GH.fr > 0.45 && ghostAlphaAt(GH.wx) > 0.8) {          // 얼굴이 건물·대나무숲 사이 틈에 완전히 비칠 때만 누를 수 있음
+    const gwx = e.clientX / scale + cam.x, gwy = e.clientY / scale + cam.y;
+    if (gwx > GH_GAP.x0 && gwx < GH_GAP.x1 && Math.abs(gwx - GH.wx) < 30 && Math.abs(gwy - GH.wy) < 26) { ghostMan(); return; }
+  }
   const tx = Math.floor((e.clientX / scale + cam.x) / 16), ty = Math.floor((e.clientY / scale + cam.y) / 16);
   for (let i = 0; i < cur.npcs.length; i++) {
     const n = cur.npcs[i];
@@ -2806,8 +3309,11 @@ function drawEnt(e) {
     const dx0 = x + 8 - Math.round(im.width / 2), dy0 = y + 15 - im.height + (big ? 1 : 0) - hp;
     ctx.drawImage(im, dx0, dy0);
     if (e.st === 'alert') {                                             // 놀람 표시
-      const bx = x + 8 + ((e.face === 'left') ? -2 : 2), by = dy0 - 7 + (big ? 0 : 0);
-      ctx.fillStyle = '#fff'; ctx.fillRect(bx - 1, by - 1, 4, 9); ctx.fillStyle = '#d83a2a'; ctx.fillRect(bx, by, 2, 5); ctx.fillRect(bx, by + 6, 2, 1);
+      const bx = x + 8 + ((e.face === 'left') ? -4 : 4) - 5, by = dy0 - (big ? (e.buck ? 14 : 12) : 11);
+      R(ctx, '#ffffff', bx, by, 11, 11); R(ctx, '#ffffff', bx + 4, by + 11, 3, 2); R(ctx, '#222222', bx + 5, by + 13, 1, 1);
+      ['..X..', '..X..', '..X..', '..X..', '..X..', '.....', '..X..'].forEach(function (row, yy) {
+        for (let xx = 0; xx < 5; xx++) if (row.charAt(xx) === 'X') R(ctx, '#d02828', bx + 3 + xx, by + 2 + yy, 1, 1);
+      });
     }
     if (asleep) {                                                   // zZ
       const tt = performance.now() / 1000, hx = ((e.face || 'right') === 'right') ? x + 16 : x - 2;
@@ -2988,6 +3494,72 @@ function drawGhostPuff() {
   if (k < 0.18) { ctx.globalAlpha = 0.5 * (1 - k / 0.18); R(ctx, '#ffffff', Math.round(p.x - cam.x - 3), Math.round(p.y - cam.y - 3), 6, 6); }
   ctx.globalAlpha = 1;
 }
+
+/* 유령 말을 누르면(건물 앞 도로에서만): 효과음 → 문이 열리고 물음표를 띄운 아저씨가 나옴 → 플레이어 앞까지 달려와 말함 → 달려가서 문을 열고 들어감(문 닫힘) */
+let GM = null;
+const HLD = { open: 0, target: 0 };
+function dd0(h) { return h.target - h.open; }
+function hlObj() { return cur.objects.find(function (o) { return o.draw === drawHolyLand; }); }
+function ghostRoadOk() {                                                 // 홀리랜드 문 앞 길(두 칸 폭, 문 아래 5칸)에 서 있을 때만
+  const ho = cur && cur.id === 'town' ? hlObj() : null; if (!ho) return false;
+  const tx = Math.round(P.px / 16), ty = Math.round(P.py / 16), bx = Math.round(ho.x / 16), by = Math.round(ho.base / 16);
+  return tx >= bx + 3 && tx <= bx + 4 && ty >= by + 1 && ty <= by + 5;
+}
+function ghostMan() {
+  if (GM || dlg.active || !cur || cur.id !== 'town') return;
+  const ho = hlObj(); if (!ho) return;
+  const x0 = ho.x + 55 - 8, yIn = ho.y + 84 - 18;
+  GM = npc(0, 0, SPR.rancher, []);
+  GM.px = x0; GM.py = yIn; GM.dir = 'down'; GM.a = 0; GM.stage = 'open'; GM.x0 = x0; GM.yIn = yIn; GM.fl = 0; GM.q = false; GM.wait = 0;
+  HLD.target = 1;
+  sfx('gClick'); sfx('gDoorOpen');
+}
+function ghostManTick(dt) {
+  const wasOpen = HLD.open > 0.01;
+  { const dd = HLD.target - HLD.open, stp = dt * (dd0(HLD) > 0 ? 1.5 : 2.6); HLD.open = Math.abs(dd) <= stp ? HLD.target : HLD.open + Math.sign(dd) * stp; }
+  if (wasOpen && HLD.open <= 0.01 && HLD.target === 0) sfx('gDoorClose');           // 문이 완전히 닫히는 순간 덜컥
+  const m = GM; if (!m) return;
+  const run = function (tx, ty) {                                       // 빠르게 달려감 (달리는 모션)
+    const dx = tx - m.px, dy = ty - m.py, d = Math.hypot(dx, dy), st = 125 * dt;
+    m.moving = true; m.fl += dt * 13; m.t = m.fl % 1; m.flip = (Math.floor(m.fl) % 2) === 1;
+    m.dir = Math.abs(dx) > Math.abs(dy) * 1.5 ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
+    if (d <= st) { m.px = tx; m.py = ty; m.moving = false; m.t = 0; return true; }
+    m.px += dx / d * st; m.py += dy / d * st; return false;
+  };
+  if (m.stage === 'open') {                                             // 문이 열리고, 어둠 속에서 아저씨가 물음표를 띄우며 나타남
+    if (HLD.open >= 0.9) { m.a = 1; m.q = true; m.stage = 'ponder'; m.wait = 0; sfx('gQ'); }
+  } else if (m.stage === 'ponder') {
+    m.wait += dt; m.dir = 'down';
+    if (m.wait > 0.8) { m.stage = 'run'; m.q = false; }
+  } else if (m.stage === 'run') {
+    const ty = Math.max(P.py - 16, m.yIn + 20);
+    if (Math.hypot(m.px - m.x0, m.py - m.yIn) > 26) HLD.target = 0;       // 나온 뒤 문이 닫힘
+    if (run(P.px, ty)) {
+      m.stage = 'talk'; m.dir = 'down'; if (!P.moving) P.dir = 'up';
+      sfx('gTalk');
+      say(['봐버렸군', '00목장의 다리 없는 말에 대해 궁금하다면\n김영수에게 직접 물어봐', '지금 본 건 누구한테도 말해선 안돼'], function () { m.stage = 'back'; });
+    }
+  } else if (m.stage === 'back') {
+    if (Math.hypot(m.px - m.x0, m.py - m.yIn) < 44 && HLD.target === 0) { HLD.target = 1; sfx('gDoorOpen'); }   // 가까워지면 문을 엶
+    if (run(m.x0, m.yIn)) { m.stage = 'enter'; m.dir = 'up'; }
+  } else if (m.stage === 'enter') {
+    m.a = Math.max(0, m.a - dt * 6);
+    if (m.a <= 0) { m.stage = 'close'; HLD.target = 0; }
+  } else if (m.stage === 'close') {
+    if (HLD.open <= 0.01) { HLD.open = 0; GM = null; }
+  }
+}
+function drawGhostMan() {
+  const m = GM; if (!m) return;
+  ctx.globalAlpha = m.a; drawEnt(m); ctx.globalAlpha = 1;
+  if (m.q && m.a > 0) {                                                  // 머리 위 물음표 말풍선
+    const bx = Math.round(m.px - cam.x + 8) - 5, by = Math.round(m.py - cam.y - 14 - Math.abs(Math.sin(m.wait * 9)) * 2);
+    R(ctx, '#ffffff', bx, by, 11, 11); R(ctx, '#ffffff', bx + 4, by + 11, 3, 2); R(ctx, '#222222', bx + 5, by + 13, 1, 1);
+    ['.XXX.', 'X...X', '....X', '..XX.', '..X..', '.....', '..X..'].forEach(function (row, yy) {
+      for (let xx = 0; xx < 5; xx++) if (row.charAt(xx) === 'X') R(ctx, '#d02828', bx + 3 + xx, by + 2 + yy, 1, 1);
+    });
+  }
+}
 function drawGhost(t) {
   GH.wx = 250 + Math.sin(t * 0.42) * 36 + Math.sin(t * 0.15 + 1) * 7;      // 안 보이는 동안에도 계속 떠다님
   GH.wy = 86 + Math.sin(t * 1.25) * 4 + Math.sin(t * 0.43) * 2;
@@ -3143,6 +3715,7 @@ function render(t) {
 
   const list = cur.objects.slice();
   [P].concat(cur.npcs).forEach(function (e) { list.push({ ent: e, base: e.py + 16 - (e.behind ? 4 : 0) }); });
+  if (GM && cur.id === 'town') list.push({ base: Math.max(GM.py + 16, GM.yIn + 20.5), x: 0, y: 0, draw: drawGhostMan });
   list.sort(function (a, b) { return a.base - b.base; });
   list.forEach(function (o) {
     if (o.broken) return;
@@ -3168,6 +3741,17 @@ function render(t) {
     }
   });
 
+  if (cur.id === 'mansion') {
+    for (let i = 0; i < 4; i++) {                                           // 바닥을 느리게 흐르는 안개
+      const fx = ((t * (4 + i * 1.5) + i * 70) % 300) - 60 - cam.x * 0.2, fy = 150 + i * 28 - cam.y;
+      const gr = ctx.createRadialGradient(fx, fy, 0, fx, fy, 70);
+      gr.addColorStop(0, 'rgba(190,205,215,0.16)'); gr.addColorStop(1, 'rgba(190,205,215,0)');
+      ctx.save(); ctx.translate(fx, fy); ctx.scale(1.8, 0.45); ctx.translate(-fx, -fy); ctx.fillStyle = gr; ctx.fillRect(fx - 70, fy - 70, 140, 140); ctx.restore();
+    }
+    const vx = (P.px + 8) - cam.x, vy = (P.py + 8) - cam.y, vg = ctx.createRadialGradient(vx, vy, 70, vx, vy, 230);
+    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,0.5)');
+    ctx.fillStyle = vg; ctx.fillRect(0, 0, vw, vh);
+  }
   if (cur.id === 'bamboo') {
     const fx = 144 - cam.x, fy = 144 - cam.y;
     const gr = ctx.createRadialGradient(fx, fy, 40, fx, fy, 150);
@@ -3200,8 +3784,10 @@ function render(t) {
   drawEyes(t);
 }
 function update(dt) {
+  if (cur && cur.id === 'mansion') crowTick(dt);
   swimTick();
   ghostTick(dt);
+  ghostManTick(dt);
   updatePlayer(dt);
   updateNPCs(dt);
   if (dlg.active) {
@@ -3215,6 +3801,8 @@ function update(dt) {
     if (ph === 'night') tp = [215, 205, 230, 0.5];
     else if (ph === 'sunset') tp = [255, 235, 215, 0.2];
     else tp = [255, 255, 255, 0];
+  } else if (cur.id === 'mansion') {
+    tp = (ph === 'night') ? [58, 64, 108, 1] : (ph === 'sunset') ? [128, 96, 110, 0.9] : [116, 122, 146, 0.85];   // 낮이든 밤이든 어둡고 으스스하게
   } else if (cur.id === 'bamboo') {
     tp = (ph === 'night') ? [64, 66, 110, 1] : [245, 165, 125, 0.85];   // 숲 안은 늘 노을빛
   }
@@ -3234,6 +3822,7 @@ function loop(now) {
 }
 requestAnimationFrame(loop);
 // ROOFTOUCH-END
+['gesturestart','gesturechange','gestureend'].forEach(function (ev) { document.addEventListener(ev, function (e) { e.preventDefault(); }, { passive: false }); });
 </script>
 </body>
 </html>
