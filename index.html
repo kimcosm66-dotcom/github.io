@@ -65,7 +65,7 @@ body.touch #dialog{bottom:calc(170px + env(safe-area-inset-bottom));}
 @keyframes blink{50%{opacity:0}}
 #pad{display:none;}
 body.touch #pad{display:block;}
-#joy{position:fixed;right:22px;bottom:calc(26px + env(safe-area-inset-bottom));width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.12);border:3px solid rgba(255,255,255,.35);touch-action:none;z-index:12;}
+#joy{position:fixed;right:22px;bottom:calc(26px + env(safe-area-inset-bottom));width:150px;height:150px;border-radius:50%;background:rgba(255,255,255,.12);border:3px solid rgba(255,255,255,.35);touch-action:none;z-index:12;}
 #knob{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:rgba(248,248,248,.4);border:3px solid rgba(60,50,40,.45);pointer-events:none;}
 .ab{position:fixed;width:62px;height:62px;border-radius:50%;font:inherit;font-size:20px;color:rgba(40,32,24,.85);background:rgba(248,248,248,.4);border:3px solid rgba(60,50,40,.45);touch-action:none;z-index:12;}
 #btnA{left:100px;bottom:calc(62px + env(safe-area-inset-bottom));}
@@ -144,7 +144,7 @@ body.touch #pad{display:block;}
   <button class="btn" id="sndBtn">♪ ON</button>
 </div>
 <div id="tag"></div>
-<div id="prompt"><span></span><kbd id="key">Space</kbd></div>
+<div id="prompt"><span></span><kbd id="key">Enter</kbd></div>
 <div id="dialog" class="box"><p id="dtext"></p></div>
 
 <div id="pad">
@@ -252,7 +252,7 @@ function makeBtn(cls, text, fn) {
 }
 if (matchMedia('(pointer:coarse)').matches || 'ontouchstart' in window) document.body.classList.add('touch');
 const isTouch = document.body.classList.contains('touch');
-$('key').textContent = isTouch ? 'A' : 'Space (A)';
+$('key').textContent = isTouch ? 'A' : 'Enter (A)';
 
 /* =========================================================
    3. 캐릭터 스프라이트 (16x16 픽셀)
@@ -3233,7 +3233,7 @@ addEventListener('keydown', function (e) {
   if (state === 'title') { start(); return; }
   if (modalOpen && k === 'enter' && !/^(input|textarea|select)$/i.test(e.target.tagName)) { e.preventDefault(); closeModal(); return; }   // PC: 엔터로 창 닫기
   if (modalOpen && modalNav && (k === 'arrowleft' || k === 'arrowright')) { modalNav(k === 'arrowleft' ? -1 : 1); return; }
-  if (['z', 'enter', ' ', 'e'].indexOf(k) >= 0) pressA();
+  if (['z', 'enter', 'e'].indexOf(k) >= 0) pressA();
   if (k === 'x' || k === 'escape') pressB();
 });
 addEventListener('keyup', function (e) { keys[e.key.toLowerCase()] = false; });
@@ -3245,13 +3245,17 @@ let joyR = null;
 function moveJoy(e) {
   if (!joyR) { const r = joy.getBoundingClientRect(); joyR = { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }
   let dx = e.clientX - joyR.x, dy = e.clientY - joyR.y;
-  const d = Math.hypot(dx, dy), max = 34;
+  const d = Math.hypot(dx, dy), max = 46;
   if (d > max) { dx *= max / d; dy *= max / d; }
   knob.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
-  joyPush = Math.max(0, Math.min(1, (d - 20) / 16));                        // 20px부터 서서히 빨라져 36px(가장자리)에서 달리기 속도
-  if (d < 12) joyDir = null;
-  else if (Math.abs(dx) > Math.abs(dy)) joyDir = (dx > 0) ? 'right' : 'left';
-  else joyDir = (dy > 0) ? 'down' : 'up';
+  joyPush = Math.max(0, Math.min(1, (d - 26) / 16));                        // 26px부터 서서히 빨라져 42px에서 달리기 속도 (가장자리까지 안 밀어도 달림)
+  if (d < 14) joyDir = null;
+  else {                                                                     // 달리는 중 손가락이 조금 흔들려도 방향이 안 바뀌게: 지금 방향 축을 1.6배 넘게 벗어나야 방향 전환
+    const horiz = (joyDir === 'left' || joyDir === 'right'), vert = (joyDir === 'up' || joyDir === 'down');
+    const ax = Math.abs(dx), ay = Math.abs(dy);
+    const goH = horiz ? !(ay > ax * 1.6) : vert ? (ax > ay * 1.6) : (ax > ay);
+    joyDir = goH ? ((dx > 0) ? 'right' : 'left') : ((dy > 0) ? 'down' : 'up');
+  }
 }
 joy.addEventListener('pointerdown', function (e) { joyR = null; joyId = e.pointerId; joy.setPointerCapture(e.pointerId); moveJoy(e); });
 joy.addEventListener('pointermove', function (e) { if (e.pointerId === joyId) moveJoy(e); });
@@ -3293,7 +3297,8 @@ let rzW = 0, rzH = 0;
 function resize() {
   if (innerWidth === rzW && innerHeight === rzH) return;
   rzW = innerWidth; rzH = innerHeight;
-  scale = Math.max(2, Math.floor(Math.min(innerWidth, innerHeight) / 150));
+  scale = isTouch ? Math.max(2, Math.floor(Math.min(innerWidth, innerHeight) / 150))
+                  : Math.max(2, Math.floor(innerHeight / 330));      // PC: 폰과 비슷한 확대(칸 크기)로 보여서 주변이 더 멀리까지 보임
   const nw = Math.ceil(innerWidth / scale), nh = Math.ceil(innerHeight / scale);
   if (cv.width !== nw) cv.width = nw;
   if (cv.height !== nh) cv.height = nh;
@@ -3780,8 +3785,8 @@ function render(t) {
   let cy = Math.round(P.py) + 8 - hy, cyMin = 0;
   if (cur.id === 'town') {                                               // 마을 맨 위쪽: 더 위로 걸어갈 순 없지만 하늘을 더 보여줘서 한라산 꼭대기가 버튼에 안 가리게
     cyMin = Math.min(0, 12 - Math.ceil(70 / scale) - 6);
-    let w = Math.max(0, Math.min(1, (160 - P.py) / 70)); w = w * w * (3 - 2 * w);   // 위쪽 길에 가까워질수록 부드럽게 위를 더 보여줌
-    cy = Math.max(cyMin, Math.round(cy * (1 - w) + cyMin * w));
+    const dd = cy - cyMin, RR = 110;                                     // 카메라가 맨 위에 닿을 때 갑자기 멈추거나 휙 올라가지 않게, 속도가 서서히 줄며 멈춤
+    if (dd < RR) cy = Math.round(cyMin + (dd <= 0 ? 0 : 2 * dd * dd / RR - dd * dd * dd / (RR * RR)));
   }
   cam.y = (mh > vh) ? Math.max(cyMin, Math.min(mh - vh, cy)) : Math.round((mh - vh) / 2);
   ctx.fillStyle = cur.bg || '#000';
